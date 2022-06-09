@@ -87,10 +87,16 @@ jtd_def = {
                 }
             }
         },
-        # # Enum
-        # "bat": {
-        #     "enum": ["VAMPIRE", "DRACULA"],
-        # },
+        # Enum
+        "bat": {
+            "enum": ["VAMPIRE", "DRACULA"],
+        },
+        # Array of enums
+        "bif": {
+            "elements": {
+                "enum": ["NAME", "SOUND_EFFECT"],
+            }
+        },
         #
         # # Typed dict
         # "biz": {
@@ -291,7 +297,18 @@ def _jtd_to_proto_impl(
     # If the definition has "enum" it's an enum
     enum = jtd_def.get("enum")
     if enum is not None:
-        raise NotImplementedError("Enum not handled yet!")
+        enum_proto = descriptor_pb2.EnumDescriptorProto(
+            name=name or _to_upper_camel("_".join(path_elements)),
+            value=[
+                descriptor_pb2.EnumValueDescriptorProto(
+                    name=entry_name,
+                    number=i,
+                )
+                for i, entry_name in enumerate(enum)
+            ],
+        )
+        enum_protos.append(enum_proto)
+        return enum_proto
 
     # If the definition has "values" it's a map
     values = jtd_def.get("values")
@@ -327,42 +344,40 @@ def _jtd_to_proto_impl(
             log.debug3(field_def)
 
             # If the field is itself a message, determine a name for it
-            if "properties" in field_def:
-                nested = _jtd_to_proto_impl(
-                    jtd_def=field_def,
-                    name=None,
-                    path_elements=list(
-                        filter(
-                            lambda x: x is not None,
-                            path_elements + [name, field_name],
-                        )
-                    ),
-                    package_name=package_name,
-                    descriptor_protos=descriptor_protos,
-                    enum_protos=enum_protos,
-                    imports=imports,
-                )
-                field_descriptors.append(
-                    descriptor_pb2.FieldDescriptorProto(
-                        name=field_name,
-                        type=descriptor.FieldDescriptor.TYPE_MESSAGE,
-                        label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
-                        type_name=nested.name,
-                        number=field_index + 1,
+            nested = _jtd_to_proto_impl(
+                jtd_def=field_def,
+                name=None,
+                path_elements=list(
+                    filter(
+                        lambda x: x is not None,
+                        path_elements + [name, field_name],
                     )
+                ),
+                package_name=package_name,
+                descriptor_protos=descriptor_protos,
+                enum_protos=enum_protos,
+                imports=imports,
+            )
+            if isinstance(nested, descriptor_pb2.DescriptorProto):
+                field_descriptor = descriptor_pb2.FieldDescriptorProto(
+                    name=field_name,
+                    type=descriptor.FieldDescriptor.TYPE_MESSAGE,
+                    label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
+                    type_name=nested.name,
+                )
+            elif isinstance(nested, descriptor_pb2.EnumDescriptorProto):
+                field_descriptor = descriptor_pb2.FieldDescriptorProto(
+                    name=field_name,
+                    type=descriptor.FieldDescriptor.TYPE_ENUM,
+                    label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
+                    type_name=nested.name,
                 )
             else:
-                field_descriptor = _jtd_to_proto_impl(
-                    jtd_def=field_def,
-                    name=None,
-                    package_name=package_name,
-                    path_elements=path_elements + [message_name, field_name],
-                    descriptor_protos=descriptor_protos,
-                    enum_protos=enum_protos,
-                    imports=imports,
-                )
-                field_descriptor.number = field_index + 1
-                field_descriptors.append(field_descriptor)
+                field_descriptor = nested
+
+            # Set the field number and add it to the list
+            field_descriptor.number = field_index + 1
+            field_descriptors.append(field_descriptor)
 
         # If additionalProperties specified, add a 'special' field for this.
         # This is one place where there's not a good mapping between JTD and
