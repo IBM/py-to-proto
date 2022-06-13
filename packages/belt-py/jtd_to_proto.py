@@ -1,5 +1,6 @@
 # Standard
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
+import copy
 import os
 import re
 
@@ -97,30 +98,42 @@ jtd_def = {
                 "enum": ["NAME", "SOUND_EFFECT"],
             }
         },
-        #
-        # # Typed dict
-        # "biz": {
-        #     "values": {
-        #         "type": "float32",
-        #     }
-        # },
-        #
-        # # Descriminator (oneof)
-        # "bit": {
-        #     "discriminator": "bitType",
-        #     "mapping": {
-        #         "SCREW_DRIVER": {
-        #             "properties": {
-        #                 "isPhillips": {"type": "boolean"},
-        #             }
-        #         },
-        #         "DRILL": {
-        #             "properties": {
-        #                 "size": {"type": "float32"},
-        #             }
-        #         }
-        #     }
-        # }
+        # Typed dict with primitive values
+        "biz": {
+            "values": {
+                "type": "float32",
+            }
+        },
+        # Dict with message values
+        "bonk": {
+            "values": {
+                "properties": {
+                    "how_hard": {"type": "float32"},
+                }
+            }
+        },
+        # Dict with enum values
+        "bang": {
+            "values": {
+                "enum": ["BLAM", "KAPOW"],
+            }
+        },
+        # Descriminator (oneof)
+        "bit": {
+            "discriminator": "bitType",
+            "mapping": {
+                "SCREW_DRIVER": {
+                    "properties": {
+                        "isPhillips": {"type": "boolean"},
+                    }
+                },
+                "DRILL": {
+                    "properties": {
+                        "size": {"type": "float32"},
+                    }
+                },
+            },
+        },
     },
     # Ensure that optionalProperties are also handled
     "optionalProperties": {
@@ -169,22 +182,24 @@ def jtd_to_proto(
 
     # This list will be used to aggregate the list of message DescriporProtos
     # for any nested message objects defined inline
-    descriptor_protos = []
-    enum_protos = []
     imports = []
 
     # Perform the recursive conversion to update the descriptors and enums in
     # place
     log.debug("Performing conversion")
-    _jtd_to_proto_impl(
+    descriptor_proto = _jtd_to_proto_impl(
         jtd_def=jtd_def,
         name=name,
         package_name=package_name,
-        path_elements=[],
-        descriptor_protos=descriptor_protos,
-        enum_protos=enum_protos,
         imports=imports,
     )
+    proto_kwargs = {}
+    if isinstance(descriptor_proto, descriptor_pb2.DescriptorProto):
+        proto_kwargs["message_type"] = [descriptor_proto]
+    elif isinstance(descriptor_proto, descriptor_pb2.EnumDescriptorProto):
+        proto_kwargs["enum_type"] = [descriptor_proto]
+    else:
+        raise ValueError("Cannot create top-level proto for 'type'")
 
     # Create the FileDescriptorProto with all messages
     log.debug("Creating FileDescriptorProto")
@@ -193,9 +208,7 @@ def jtd_to_proto(
         package=package_name,
         syntax="proto3",
         dependency=imports,
-        public_dependency=list(range(len(imports))),
-        message_type=descriptor_protos,
-        enum_type=enum_protos,
+        **proto_kwargs,
     )
     log.debug4("Full FileDescriptorProto:\n%s", fd_proto)
 
@@ -216,40 +229,35 @@ def _jtd_to_proto_impl(
     jtd_def: Dict[str, Union[dict, str]],
     name: Optional[str],
     package_name: str,
-    path_elements: List[str],
-    descriptor_protos: List[descriptor_pb2.DescriptorProto],
-    enum_protos: List[descriptor_pb2.EnumDescriptorProto],
     imports: List[str],
-    is_repeated: bool = False,
 ) -> Union[
     descriptor_pb2.DescriptorProto,
     descriptor_pb2.EnumDescriptorProto,
-    descriptor_pb2.FieldDescriptorProto,
+    int,
+    str,
 ]:
     """Recursive implementation of converting messages, fields, enums, arrays,
     and maps from JTD to their respective *DescriptorProto representations.
-
-    Any DescriptorProto (message) and EnumDescriptorProto will be added to the
-    given lists in-line and also returned so that it can be referenced as
-    needed if it is a nested field type.
     """
+
+    # Common logic for determining the name to use if a name is needed
+    message_name = _to_upper_camel(name)
+    log.debug("Message name: %s", message_name)
 
     # If the jtd definition is a single "type": "name", perform the base-case
     # and look up the proto type
     type_name = jtd_def.get("type")
     if type_name is not None:
-        if type_name is None:
+        proto_type_val = jtd_to_proto_types.get(type_name)
+        if proto_type_val is None:
             raise ValueError(f"No proto mapping for type '{type_name}'")
 
-        # If this is a primitive, set up the type arguments accordingly
-        proto_type_val = jtd_to_proto_types.get(type_name)
+        # If this is a primitive, just return it
         if isinstance(proto_type_val, int):
-            type_val = proto_type_val
-            type_name = None
+            return proto_type_val
 
         # Otherwise, assume it's a known DescriptorProto
         else:
-            type_val = descriptor.FieldDescriptor.TYPE_MESSAGE
             type_name = proto_type_val.DESCRIPTOR.full_name
             import_file = proto_type_val.DESCRIPTOR.file.name
             log.debug3(
@@ -258,47 +266,13 @@ def _jtd_to_proto_impl(
                 type_name,
             )
             imports.append(import_file)
-
-        # Create the FieldDescriptor for the non-repeated field
-        return descriptor_pb2.FieldDescriptorProto(
-            name=name or path_elements[-1],
-            type=type_val,
-            # In proto3, everything is optional
-            label=(
-                descriptor.FieldDescriptor.LABEL_REPEATED
-                if is_repeated
-                else descriptor.FieldDescriptor.LABEL_OPTIONAL
-            ),
-            type_name=type_name,
-        )
-
-    # If the definition has "elements" it's a repeated field
-    elements = jtd_def.get("elements")
-    if elements is not None:
-        nested = _jtd_to_proto_impl(
-            jtd_def=elements,
-            name=name,
-            path_elements=path_elements,
-            package_name=package_name,
-            descriptor_protos=descriptor_protos,
-            enum_protos=enum_protos,
-            imports=imports,
-            is_repeated=True,
-        )
-        if isinstance(nested, descriptor_pb2.DescriptorProto):
-            return descriptor_pb2.FieldDescriptorProto(
-                name=name or path_elements[-1],
-                type=descriptor.FieldDescriptor.TYPE_MESSAGE,
-                label=descriptor.FieldDescriptor.LABEL_REPEATED,
-                type_name=nested.name,
-            )
-        return nested
+            return type_name
 
     # If the definition has "enum" it's an enum
     enum = jtd_def.get("enum")
     if enum is not None:
         enum_proto = descriptor_pb2.EnumDescriptorProto(
-            name=name or _to_upper_camel("_".join(path_elements)),
+            name=message_name,
             value=[
                 descriptor_pb2.EnumValueDescriptorProto(
                     name=entry_name,
@@ -307,13 +281,47 @@ def _jtd_to_proto_impl(
                 for i, entry_name in enumerate(enum)
             ],
         )
-        enum_protos.append(enum_proto)
         return enum_proto
 
     # If the definition has "values" it's a map
+    #
+    # Maps in descriptors are implemented in a _funky_ way. The map syntax=
+    #     map<KeyType, ValType> the_map = 1;
+    #
+    # gets converted to a repeated message as follows:
+    #     option map_entry = true;
+    #     optional KeyType key = 1;
+    #     optional ValType value = 2;
+    #
+    # CITE: https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.cc#L7102
+    ##
     values = jtd_def.get("values")
     if values is not None:
-        raise NotImplementedError("Enum not handled yet!")
+        # Construct the JTD representation of the message
+        entry_msg_type = {
+            "properties": {
+                "key": {"type": "string"},
+                "value": values,
+            }
+        }
+        entry_msg_name = "{}Entry".format(message_name)
+        log.debug3("Map entry message for %s: %s", message_name, entry_msg_name)
+
+        # Perform the recursive conversion
+        nested = _jtd_to_proto_impl(
+            jtd_def=entry_msg_type,
+            name=entry_msg_name,
+            package_name=package_name,
+            imports=imports,
+        )
+
+        # Set the map_entry option
+        nested.MergeFrom(
+            descriptor_pb2.DescriptorProto(
+                options=descriptor_pb2.MessageOptions(map_entry=True)
+            )
+        )
+        return nested
 
     # If the definition has "descriminator" in it, it's a oneof
     descriminator = jtd_def.get("descriminator")
@@ -323,18 +331,16 @@ def _jtd_to_proto_impl(
             raise ValueError("No 'mapping' given with 'descriminator'")
         raise NotImplementedError("Descriminator not handled yet!")
 
-    # If the object has "properties", it's going to create a net-new DESCRIPTOR
+    # If the object has "properties", it's a message
     properties = jtd_def.get("properties", {})
     optional_properties = jtd_def.get("optionalProperties", {})
     all_properties = dict(**properties, **optional_properties)
     additional_properties = jtd_def.get("additionalProperties")
     if all_properties or additional_properties:
         field_descriptors = []
-
-        # Determine the name for this message based on the provided name and/or
-        # path elements
-        message_name = name or _to_upper_camel("_".join(path_elements))
-        log.debug2("Message name: %s", message_name)
+        nested_enums = []
+        nested_messages = []
+        nested_oneofs = []
 
         # Iterate each field and perform the recursive conversion
         for field_index, (field_name, field_def) in enumerate(all_properties.items()):
@@ -343,41 +349,153 @@ def _jtd_to_proto_impl(
             )
             log.debug3(field_def)
 
-            # If the field is itself a message, determine a name for it
-            nested = _jtd_to_proto_impl(
-                jtd_def=field_def,
-                name=None,
-                path_elements=list(
-                    filter(
-                        lambda x: x is not None,
-                        path_elements + [name, field_name],
-                    )
-                ),
-                package_name=package_name,
-                descriptor_protos=descriptor_protos,
-                enum_protos=enum_protos,
-                imports=imports,
-            )
-            if isinstance(nested, descriptor_pb2.DescriptorProto):
-                field_descriptor = descriptor_pb2.FieldDescriptorProto(
-                    name=field_name,
-                    type=descriptor.FieldDescriptor.TYPE_MESSAGE,
-                    label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
-                    type_name=nested.name,
-                )
-            elif isinstance(nested, descriptor_pb2.EnumDescriptorProto):
-                field_descriptor = descriptor_pb2.FieldDescriptorProto(
-                    name=field_name,
-                    type=descriptor.FieldDescriptor.TYPE_ENUM,
-                    label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
-                    type_name=nested.name,
-                )
-            else:
-                field_descriptor = nested
+            field_kwargs = {
+                "name": field_name,
+                "number": len(field_descriptors) + 1,
+                "label": descriptor.FieldDescriptor.LABEL_OPTIONAL,
+            }
+            field_type_def = field_def
 
-            # Set the field number and add it to the list
-            field_descriptor.number = field_index + 1
-            field_descriptors.append(field_descriptor)
+            # If the definition is nested with "elements" it's a repeated field
+            elements = field_def.get("elements")
+            if elements is not None:
+                field_kwargs["label"] = descriptor.FieldDescriptor.LABEL_REPEATED
+                field_type_def = elements
+
+            # If the definition is a "discriminator" it's a oneof. This means
+            # we need to recurse on all elements of the "mapping" and perform
+            # the nested type logic for each result, then add the special
+            # oneof field
+            discriminator = field_def.get("discriminator")
+            nested_results = []
+            if discriminator is not None:
+                mapping = field_def.get("mapping")
+                assert isinstance(
+                    mapping, dict
+                ), "Invalid discriminator without mapping"
+
+                # Make all the sub-fields within the oneof
+                for mapping_idx, (mapping_name, mapping_def) in enumerate(
+                    mapping.items()
+                ):
+                    nested_results.append(
+                        (
+                            _jtd_to_proto_impl(
+                                jtd_def=mapping_def,
+                                name=mapping_name,
+                                package_name=package_name,
+                                imports=imports,
+                            ),
+                            {
+                                "oneof_index": len(nested_oneofs),
+                                "number": field_kwargs["number"] + mapping_idx,
+                                "name": mapping_name.lower(),
+                            },
+                        )
+                    )
+
+                # Add the name for this oneof
+                nested_oneofs.append(
+                    descriptor_pb2.OneofDescriptorProto(name=discriminator)
+                )
+
+            # If not a oneof, just recurse once
+            else:
+                nested_results = [
+                    (
+                        _jtd_to_proto_impl(
+                            jtd_def=field_type_def,
+                            name=field_name,
+                            package_name=package_name,
+                            imports=imports,
+                        ),
+                        {},
+                    )
+                ]
+
+            for nested, extra_kwargs in nested_results:
+                nested_field_kwargs = copy.copy(field_kwargs)
+                nested_field_kwargs.update(extra_kwargs)
+
+                # If the result is an int, it's a type value
+                if isinstance(nested, int):
+                    nested_field_kwargs["type"] = nested
+
+                # If the result is a tuple, it's an imported message name
+                elif isinstance(nested, str):
+                    nested_field_kwargs[
+                        "type"
+                    ] = descriptor.FieldDescriptor.TYPE_MESSAGE
+                    nested_field_kwargs["type_name"] = nested
+
+                # If the result is an enum, add it as a nested enum
+                elif isinstance(nested, descriptor_pb2.EnumDescriptorProto):
+                    nested_field_kwargs["type"] = descriptor.FieldDescriptor.TYPE_ENUM
+                    nested_field_kwargs["type_name"] = nested.name
+                    nested_enums.append(nested)
+
+                # If the result is a message, add it as a nested message
+                elif isinstance(nested, descriptor_pb2.DescriptorProto):
+                    nested_field_kwargs[
+                        "type"
+                    ] = descriptor.FieldDescriptor.TYPE_MESSAGE
+                    nested_field_kwargs["type_name"] = nested.name
+                    nested_messages.append(nested)
+
+                    # If the message has map_entry set, we need to indicate that
+                    # it's repeated
+                    if nested.options.map_entry:
+                        nested_field_kwargs[
+                            "label"
+                        ] = descriptor.FieldDescriptor.LABEL_REPEATED
+
+                        # If the nested map entry itself has nested types or enums,
+                        # they need to be moved up to this message
+                        while nested.nested_type:
+                            nested_type = nested.nested_type.pop()
+                            plain_name = nested_type.name
+                            nested_name = _to_upper_camel(
+                                "_".join([field_name, plain_name])
+                            )
+                            nested_type.MergeFrom(
+                                descriptor_pb2.DescriptorProto(name=nested_name)
+                            )
+                            for field in nested.field:
+                                if field.type_name == plain_name:
+                                    field.MergeFrom(
+                                        descriptor_pb2.FieldDescriptorProto(
+                                            type_name=nested_name
+                                        )
+                                    )
+                            nested_messages.append(nested_type)
+                        while nested.enum_type:
+                            nested_enum = nested.enum_type.pop()
+                            plain_name = nested_enum.name
+                            nested_name = _to_upper_camel(
+                                "_".join([field_name, plain_name])
+                            )
+                            nested_enum.MergeFrom(
+                                descriptor_pb2.EnumDescriptorProto(name=nested_name)
+                            )
+                            for field in nested.field:
+                                if field.type_name == plain_name:
+                                    field.MergeFrom(
+                                        descriptor_pb2.FieldDescriptorProto(
+                                            type_name=nested_name
+                                        )
+                                    )
+                            nested_enums.append(nested_enum)
+
+                # Otherwise, it's an error!
+                else:
+                    assert (
+                        False
+                    ), f"Programming Error! Can't handle field of type {type(nested)}"
+
+                # Create the field descriptor
+                field_descriptors.append(
+                    descriptor_pb2.FieldDescriptorProto(**nested_field_kwargs)
+                )
 
         # If additionalProperties specified, add a 'special' field for this.
         # This is one place where there's not a good mapping between JTD and
@@ -392,7 +510,7 @@ def _jtd_to_proto_impl(
             field_descriptors.append(
                 descriptor_pb2.FieldDescriptorProto(
                     name="additionalProperties",
-                    number=len(all_properties) + 1,
+                    number=len(field_descriptors) + 1,
                     type=descriptor.FieldDescriptor.TYPE_MESSAGE,
                     label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
                     type_name=struct_pb2.Struct.DESCRIPTOR.full_name,
@@ -407,13 +525,10 @@ def _jtd_to_proto_impl(
         descriptor_proto = descriptor_pb2.DescriptorProto(
             name=message_name,
             field=field_descriptors,
-            # enum_types=None, # TODO: Fix with enum support
-            # enum_types_by_name=None,
-            # enum_values_by_name=None,
-            # oneofs=None, # TODO: Fix with oneof support
-            # oneofs_by_name=None,
+            enum_type=nested_enums,
+            nested_type=nested_messages,
+            oneof_decl=nested_oneofs,
         )
-        descriptor_protos.append(descriptor_proto)
         return descriptor_proto
 
 
