@@ -33,4 +33,43 @@ This project aims to bring them together so that a given project can take advant
 
 ## Usage
 
+The usage of this library can be best understood with a simple example:
+
+```py
+import jtd_to_proto
+
+# Declare the Foo protobuf message class
+Foo = jtd_to_proto.descriptor_to_message_class(
+    jtd_to_proto.jtd_to_proto(
+        name="Foo",
+        package="foobar",
+        jtd_def={
+            "properties": {
+                # Bool field
+                "foo": {
+                    "type": "boolean",
+                },
+                # Array of nested enum values
+                "bar": {
+                    "elements": {
+                        "enum": ["EXAM", "JOKE_SETTING"],
+                    }
+                }
+            }
+        },
+    )
+)
+
+def write_foo_proto(filename: str):
+    """Write out the .proto file for Foo to the given filename"""
+    with open(filename, "w") as handle:
+        handle.write(Foo.to_proto_file())
+```
+
 ## Similar Projects
+
+There are a number of similar projects in this space that offer slightly diferent value:
+
+* [`jtd-codegen`](https://jsontypedef.com/docs/jtd-codegen/): This project focuses on statically generating language-native code (including `python`) to represent the JTD schema.
+* [`py-json-to-proto`](https://pypi.org/project/py-json-to-proto/): This project aims to deduce a schema from an instance of a `json` object.
+* [`pure-protobuf`](https://pypi.org/project/pure-protobuf/): This project has a very similar aim to `jtd-to-proto`, but it skips the intermediate `descriptor` representation and thus is not able to produce native `message.Message` classes.
