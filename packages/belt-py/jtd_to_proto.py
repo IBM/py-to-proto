@@ -5,7 +5,8 @@ import os
 import re
 
 # Third Party
-from google.protobuf import descriptor, descriptor_pb2
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
 import jtd
@@ -15,8 +16,20 @@ import alog
 
 log = alog.use_channel("JTD2P")
 
+## Utils #######################################################################
 
-def descriptor_proto_from_descriptor(descriptor, msg_name):
+
+def _to_upper_camel(snake_str: str) -> str:
+    """Convert a snake_case string to UpperCamelCase"""
+    if not snake_str:
+        return snake_str
+    return (
+        snake_str[0].upper()
+        + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
+    )
+
+
+def _descriptor_proto_from_descriptor(descriptor, msg_name):
     """Extract a DescriptorProto for a named message from a FileDescriptor. This
     is needed so that those messages can be used within fields below.
     """
@@ -25,123 +38,59 @@ def descriptor_proto_from_descriptor(descriptor, msg_name):
     return list(filter(lambda msg: msg.name == msg_name, file_proto.message_type))[0]
 
 
+## Globals #####################################################################
+
 # Extract DescriptorProtos for struct_pb2.Proto and timestamp_pb2.Timestamp
-STRUCT_PROTO = descriptor_proto_from_descriptor(struct_pb2.DESCRIPTOR, "Struct")
-TIMESTAMP_PROTO = descriptor_proto_from_descriptor(
+STRUCT_PROTO = _descriptor_proto_from_descriptor(struct_pb2.DESCRIPTOR, "Struct")
+TIMESTAMP_PROTO = _descriptor_proto_from_descriptor(
     timestamp_pb2.DESCRIPTOR, "Timestamp"
 )
 
-jtd_to_proto_types = {
-    "boolean": descriptor.FieldDescriptor.TYPE_BOOL,
-    "string": descriptor.FieldDescriptor.TYPE_STRING,
+JTD_TO_PROTO_TYPES = {
+    "boolean": _descriptor.FieldDescriptor.TYPE_BOOL,
+    "string": _descriptor.FieldDescriptor.TYPE_STRING,
     "timestamp": timestamp_pb2.Timestamp,
-    "float32": descriptor.FieldDescriptor.TYPE_FLOAT,
-    "float64": descriptor.FieldDescriptor.TYPE_DOUBLE,
+    "float32": _descriptor.FieldDescriptor.TYPE_FLOAT,
+    "float64": _descriptor.FieldDescriptor.TYPE_DOUBLE,
     # NOTE: All number types except fixed, double, and float are stored as
     #   varints meaning as long as your numbers stay in about the int8 or int16
     #   range, they are only 1 or 2 bytes, even though it says int32.
     #
     # CITE: https://groups.google.com/g/protobuf/c/Er39mNGnRWU/m/x6Srz_GrZPgJ
-    "int8": descriptor.FieldDescriptor.TYPE_INT32,
-    "uint8": descriptor.FieldDescriptor.TYPE_UINT32,
-    "int16": descriptor.FieldDescriptor.TYPE_INT32,
-    "uint16": descriptor.FieldDescriptor.TYPE_UINT32,
-    "int8": descriptor.FieldDescriptor.TYPE_INT32,
-    "uint8": descriptor.FieldDescriptor.TYPE_UINT32,
-    "int32": descriptor.FieldDescriptor.TYPE_INT32,
-    "uint32": descriptor.FieldDescriptor.TYPE_UINT32,
+    "int8": _descriptor.FieldDescriptor.TYPE_INT32,
+    "uint8": _descriptor.FieldDescriptor.TYPE_UINT32,
+    "int16": _descriptor.FieldDescriptor.TYPE_INT32,
+    "uint16": _descriptor.FieldDescriptor.TYPE_UINT32,
+    "int8": _descriptor.FieldDescriptor.TYPE_INT32,
+    "uint8": _descriptor.FieldDescriptor.TYPE_UINT32,
+    "int32": _descriptor.FieldDescriptor.TYPE_INT32,
+    "uint32": _descriptor.FieldDescriptor.TYPE_UINT32,
 }
 
-jtd_def = {
-    "properties": {
-        # bool field
-        "foo": {
-            "type": "boolean",
-        },
-        # Array of strings
-        "bar": {
-            "elements": {
-                "type": "string",
-            }
-        },
-        # Nested Object
-        "buz": {
-            "properties": {
-                "bee": {
-                    "type": "boolean",
-                }
-            },
-            # Arbitrary map
-            "additionalProperties": True,
-        },
-        # timestamp field
-        "time": {
-            "type": "timestamp",
-        },
-        # Array of objects
-        "baz": {
-            "elements": {
-                "properties": {
-                    "nested": {
-                        "type": "int8",
-                    }
-                }
-            }
-        },
-        # Enum
-        "bat": {
-            "enum": ["VAMPIRE", "DRACULA"],
-        },
-        # Array of enums
-        "bif": {
-            "elements": {
-                "enum": ["NAME", "SOUND_EFFECT"],
-            }
-        },
-        # Typed dict with primitive values
-        "biz": {
-            "values": {
-                "type": "float32",
-            }
-        },
-        # Dict with message values
-        "bonk": {
-            "values": {
-                "properties": {
-                    "how_hard": {"type": "float32"},
-                }
-            }
-        },
-        # Dict with enum values
-        "bang": {
-            "values": {
-                "enum": ["BLAM", "KAPOW"],
-            }
-        },
-        # Descriminator (oneof)
-        "bit": {
-            "discriminator": "bitType",
-            "mapping": {
-                "SCREW_DRIVER": {
-                    "properties": {
-                        "isPhillips": {"type": "boolean"},
-                    }
-                },
-                "DRILL": {
-                    "properties": {
-                        "size": {"type": "float32"},
-                    }
-                },
-            },
-        },
-    },
-    # Ensure that optionalProperties are also handled
-    "optionalProperties": {
-        "metoo": {
-            "type": "string",
-        }
-    },
+PROTO_FILE_PRIMITIVE_TYPE_NAMES = {
+    type_val: type_name[5:].lower()
+    for type_name, type_val in vars(_descriptor.FieldDescriptor).items()
+    if type_name.startswith("TYPE_")
 }
+
+PROTO_FILE_INDENT = "  "
+
+PROTO_FILE_AUTOGEN_HEADER = """
+/*------------------------------------------------------------------------------
+ * AUTO GENERATED
+ *----------------------------------------------------------------------------*/
+"""
+
+PROTO_FILE_ENUM_HEADER = """
+/*-- ENUMS -------------------------------------------------------------------*/
+"""
+
+PROTO_FILE_MESSAGE_HEADER = """
+/*-- MESSAGES ----------------------------------------------------------------*/
+"""
+
+
+## Interface ###################################################################
 
 
 def jtd_to_proto(
@@ -151,7 +100,7 @@ def jtd_to_proto(
     *,
     validate_jtd: bool = False,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
-):
+) -> _descriptor.Descriptor:
     """Convert a JTD schema into a set of proto DESCRIPTOR objects.
 
     Reference: https://jsontypedef.com/docs/jtd-in-5-minutes/
@@ -172,7 +121,8 @@ def jtd_to_proto(
             message descriptors
 
     Returns:
-        descriptor:  descriptor.FileDescriptor
+        descriptor:  descriptor.Descriptor
+            The top-level MessageDescriptor corresponding to this jtd definition
     """
     # If performing validation, attempt to parse schema with jtd and throw away
     # the results
@@ -224,6 +174,58 @@ def jtd_to_proto(
     return descriptor_pool.FindMessageTypeByName(fullname)
 
 
+def descriptor_to_file(
+    descriptor: Union[_descriptor.FileDescriptor, _descriptor.Descriptor],
+) -> str:
+    """Serialize a .proto file from a FileDescriptor
+
+    Args:
+        descriptor:  Union[descriptor.FileDescriptor, descriptor.MessageDescriptor]
+            The file or message descriptor to serialize
+
+    Returns:
+        proto_file_content:  str
+            The serialized file content for the .proto file
+    """
+
+    # If this is a message descriptor, use its corresponding FileDescriptor
+    if isinstance(descriptor, _descriptor.Descriptor):
+        descriptor = descriptor.file
+    if not isinstance(descriptor, _descriptor.FileDescriptor):
+        raise ValueError(f"Invalid file descriptor of type {type(descriptor)}")
+    proto_file_lines = []
+
+    # Create the header
+    proto_file_lines.append(PROTO_FILE_AUTOGEN_HEADER)
+
+    # Add package, syntax, and imports
+    proto_file_lines.append(f'syntax = "{descriptor.syntax}";')
+    if descriptor.package:
+        proto_file_lines.append(f"package {descriptor.package};")
+    for dep in descriptor.dependencies:
+        proto_file_lines.append(f'import "{dep.name}";')
+    proto_file_lines.append("")
+
+    # Add all enums
+    if descriptor.enum_types_by_name:
+        proto_file_lines.append(PROTO_FILE_ENUM_HEADER)
+        for enum_descriptor in descriptor.enum_types_by_name.values():
+            proto_file_lines.extend(_enum_descriptor_to_file(enum_descriptor))
+            proto_file_lines.append("")
+
+    # Add all messages
+    if descriptor.message_types_by_name:
+        proto_file_lines.append(PROTO_FILE_MESSAGE_HEADER)
+        for message_descriptor in descriptor.message_types_by_name.values():
+            proto_file_lines.extend(_message_descriptor_to_file(message_descriptor))
+            proto_file_lines.append("")
+
+    return "\n".join(proto_file_lines)
+
+
+## Impl ########################################################################
+
+
 def _jtd_to_proto_impl(
     *,
     jtd_def: Dict[str, Union[dict, str]],
@@ -248,7 +250,7 @@ def _jtd_to_proto_impl(
     # and look up the proto type
     type_name = jtd_def.get("type")
     if type_name is not None:
-        proto_type_val = jtd_to_proto_types.get(type_name)
+        proto_type_val = JTD_TO_PROTO_TYPES.get(type_name)
         if proto_type_val is None:
             raise ValueError(f"No proto mapping for type '{type_name}'")
 
@@ -352,14 +354,14 @@ def _jtd_to_proto_impl(
             field_kwargs = {
                 "name": field_name,
                 "number": len(field_descriptors) + 1,
-                "label": descriptor.FieldDescriptor.LABEL_OPTIONAL,
+                "label": _descriptor.FieldDescriptor.LABEL_OPTIONAL,
             }
             field_type_def = field_def
 
             # If the definition is nested with "elements" it's a repeated field
             elements = field_def.get("elements")
             if elements is not None:
-                field_kwargs["label"] = descriptor.FieldDescriptor.LABEL_REPEATED
+                field_kwargs["label"] = _descriptor.FieldDescriptor.LABEL_REPEATED
                 field_type_def = elements
 
             # If the definition is a "discriminator" it's a oneof. This means
@@ -425,12 +427,12 @@ def _jtd_to_proto_impl(
                 elif isinstance(nested, str):
                     nested_field_kwargs[
                         "type"
-                    ] = descriptor.FieldDescriptor.TYPE_MESSAGE
+                    ] = _descriptor.FieldDescriptor.TYPE_MESSAGE
                     nested_field_kwargs["type_name"] = nested
 
                 # If the result is an enum, add it as a nested enum
                 elif isinstance(nested, descriptor_pb2.EnumDescriptorProto):
-                    nested_field_kwargs["type"] = descriptor.FieldDescriptor.TYPE_ENUM
+                    nested_field_kwargs["type"] = _descriptor.FieldDescriptor.TYPE_ENUM
                     nested_field_kwargs["type_name"] = nested.name
                     nested_enums.append(nested)
 
@@ -438,7 +440,7 @@ def _jtd_to_proto_impl(
                 elif isinstance(nested, descriptor_pb2.DescriptorProto):
                     nested_field_kwargs[
                         "type"
-                    ] = descriptor.FieldDescriptor.TYPE_MESSAGE
+                    ] = _descriptor.FieldDescriptor.TYPE_MESSAGE
                     nested_field_kwargs["type_name"] = nested.name
                     nested_messages.append(nested)
 
@@ -447,7 +449,7 @@ def _jtd_to_proto_impl(
                     if nested.options.map_entry:
                         nested_field_kwargs[
                             "label"
-                        ] = descriptor.FieldDescriptor.LABEL_REPEATED
+                        ] = _descriptor.FieldDescriptor.LABEL_REPEATED
 
                         # If the nested map entry itself has nested types or enums,
                         # they need to be moved up to this message
@@ -511,8 +513,8 @@ def _jtd_to_proto_impl(
                 descriptor_pb2.FieldDescriptorProto(
                     name="additionalProperties",
                     number=len(field_descriptors) + 1,
-                    type=descriptor.FieldDescriptor.TYPE_MESSAGE,
-                    label=descriptor.FieldDescriptor.LABEL_OPTIONAL,
+                    type=_descriptor.FieldDescriptor.TYPE_MESSAGE,
+                    label=_descriptor.FieldDescriptor.LABEL_OPTIONAL,
                     type_name=struct_pb2.Struct.DESCRIPTOR.full_name,
                 )
             )
@@ -532,17 +534,205 @@ def _jtd_to_proto_impl(
         return descriptor_proto
 
 
-def _to_upper_camel(snake_str: str) -> str:
-    """Convert a snake_case string to UpperCamelCase"""
-    if not snake_str:
-        return snake_str
-    return (
-        snake_str[0].upper()
-        + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
+def _indent_lines(indent: int, lines: List[str]) -> List[str]:
+    """Add indentation to the given lines"""
+    return [
+        indent * PROTO_FILE_INDENT + line if line else line
+        for line in "\n".join(lines).split("\n")
+    ]
+
+
+def _enum_descriptor_to_file(
+    enum_descriptor: _descriptor.EnumDescriptor,
+    indent: int = 0,
+) -> List[str]:
+    """Make the string representation of an enum"""
+    lines = []
+    lines.append(f"enum {enum_descriptor.name} {{")
+    for val in enum_descriptor.values:
+        lines.append(f"{PROTO_FILE_INDENT}{val.name} = {val.number};")
+    lines.append("}")
+    return _indent_lines(indent, lines)
+
+
+def _message_descriptor_to_file(
+    message_descriptor: _descriptor.Descriptor,
+    indent: int = 0,
+) -> List[str]:
+    """Make the string representation of an enum"""
+    lines = []
+    lines.append(f"message {message_descriptor.name} {{")
+
+    # Add nested enums
+    for enum_descriptor in message_descriptor.enum_types:
+        lines.extend(_enum_descriptor_to_file(enum_descriptor, indent=1))
+        lines.append("")
+
+    # Add nested messages
+    for nested_msg_descriptor in message_descriptor.nested_types:
+        if _is_map_entry(nested_msg_descriptor):
+            continue
+        lines.extend(_message_descriptor_to_file(nested_msg_descriptor, indent=1))
+        lines.append("")
+
+    # Add fields
+    for field_descriptor in message_descriptor.fields:
+        field_line = PROTO_FILE_INDENT
+
+        # Add the repeated qualifier if needed
+        if (
+            not _is_map_entry(field_descriptor.message_type)
+            and field_descriptor.label == field_descriptor.LABEL_REPEATED
+        ):
+            field_line += "repeated "
+
+        # Add the type
+        field_line += _get_field_type_str(field_descriptor)
+
+        # Add the name and number
+        field_line += f" {field_descriptor.name} = {field_descriptor.number};"
+
+        lines.append(field_line)
+
+    lines.append("}")
+    return _indent_lines(indent, lines)
+
+
+def _get_field_type_str(field_descriptor: _descriptor.FieldDescriptor) -> str:
+    """Get the string version of a field's type"""
+
+    # Add the type
+    if field_descriptor.type == field_descriptor.TYPE_MESSAGE:
+        if _is_map_entry(field_descriptor.message_type):
+            key_type = _get_field_type_str(
+                field_descriptor.message_type.fields_by_name["key"]
+            )
+            val_type = _get_field_type_str(
+                field_descriptor.message_type.fields_by_name["value"]
+            )
+            return f"map<{key_type}, {val_type}>"
+        else:
+            return field_descriptor.message_type.full_name
+    elif field_descriptor.type == field_descriptor.TYPE_ENUM:
+        return field_descriptor.enum_type.full_name
+    else:
+        return PROTO_FILE_PRIMITIVE_TYPE_NAMES[field_descriptor.type]
+
+
+def _is_map_entry(message_descriptor: _descriptor.Descriptor) -> bool:
+    """Check whether this message is a map entry"""
+    return message_descriptor is not None and getattr(
+        message_descriptor.GetOptions(), "map_entry", False
     )
 
+
+## Main ########################################################################
+
+jtd_def = {
+    "properties": {
+        # bool field
+        "foo": {
+            "type": "boolean",
+        },
+        # Array of strings
+        "bar": {
+            "elements": {
+                "type": "string",
+            }
+        },
+        # Nested Object
+        "buz": {
+            "properties": {
+                "bee": {
+                    "type": "boolean",
+                }
+            },
+            # Arbitrary map
+            "additionalProperties": True,
+        },
+        # timestamp field
+        "time": {
+            "type": "timestamp",
+        },
+        # Array of objects
+        "baz": {
+            "elements": {
+                "properties": {
+                    "nested": {
+                        "type": "int8",
+                    }
+                }
+            }
+        },
+        # Enum
+        "bat": {
+            "enum": ["VAMPIRE", "DRACULA"],
+        },
+        # Array of enums
+        "bif": {
+            "elements": {
+                "enum": ["NAME", "SOUND_EFFECT"],
+            }
+        },
+        # Typed dict with primitive values
+        "biz": {
+            "values": {
+                "type": "float32",
+            }
+        },
+        # Dict with message values
+        "bonk": {
+            "values": {
+                "properties": {
+                    "how_hard": {"type": "float32"},
+                }
+            }
+        },
+        # Dict with enum values
+        "bang": {
+            "values": {
+                "enum": ["BLAM", "KAPOW"],
+            }
+        },
+        # # Descriminator (oneof)
+        # "bit": {
+        #     "discriminator": "bitType",
+        #     "mapping": {
+        #         "SCREW_DRIVER": {
+        #             "properties": {
+        #                 "isPhillips": {"type": "boolean"},
+        #             }
+        #         },
+        #         "DRILL": {
+        #             "properties": {
+        #                 "size": {"type": "float32"},
+        #             }
+        #         },
+        #     },
+        # },
+    },
+    # Ensure that optionalProperties are also handled
+    "optionalProperties": {
+        "metoo": {
+            "type": "string",
+        }
+    },
+}
 
 if __name__ == "__main__":
     alog.configure(os.environ.get("LOG_LEVEL", "info"))
 
-    print(jtd_to_proto(jtd_def, "Foo", validate_jtd=True))
+    desc = jtd_to_proto(jtd_def, "Foo", validate_jtd=True)
+    print(desc)
+    proto_file_content = descriptor_to_file(desc)
+    print(proto_file_content)
+    with open("foo.proto", "w") as handle:
+        handle.write(proto_file_content)
+
+    # Standard
+    import shlex
+    import subprocess
+
+    subprocess.run(
+        shlex.split("python -m grpc_tools.protoc foo.proto --python_out='.' -I .")
+    )
