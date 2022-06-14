@@ -89,6 +89,11 @@ PROTO_FILE_MESSAGE_HEADER = """
 /*-- MESSAGES ----------------------------------------------------------------*/
 """
 
+PROTO_FILE_NESTED_ENUM_HEADER = f"{PROTO_FILE_INDENT}/*-- nested enums --*/"
+PROTO_FILE_NESTED_MESSAGE_HEADER = f"{PROTO_FILE_INDENT}/*-- nested messages --*/"
+PROTO_FILE_FIELD_HEADER = f"{PROTO_FILE_INDENT}/*-- fields --*/"
+PROTO_FILE_ONEOF_HEADER = f"{PROTO_FILE_INDENT}/*-- oneofs --*/"
+
 
 ## Interface ###################################################################
 
@@ -536,6 +541,8 @@ def _jtd_to_proto_impl(
 
 def _indent_lines(indent: int, lines: List[str]) -> List[str]:
     """Add indentation to the given lines"""
+    if not indent:
+        return lines
     return [
         indent * PROTO_FILE_INDENT + line if line else line
         for line in "\n".join(lines).split("\n")
@@ -564,36 +571,73 @@ def _message_descriptor_to_file(
     lines.append(f"message {message_descriptor.name} {{")
 
     # Add nested enums
+    if message_descriptor.enum_types:
+        lines.append("")
+        lines.append(PROTO_FILE_NESTED_ENUM_HEADER)
     for enum_descriptor in message_descriptor.enum_types:
         lines.extend(_enum_descriptor_to_file(enum_descriptor, indent=1))
-        lines.append("")
 
     # Add nested messages
+    if message_descriptor.nested_types:
+        lines.append("")
+        lines.append(PROTO_FILE_NESTED_MESSAGE_HEADER)
     for nested_msg_descriptor in message_descriptor.nested_types:
         if _is_map_entry(nested_msg_descriptor):
             continue
         lines.extend(_message_descriptor_to_file(nested_msg_descriptor, indent=1))
-        lines.append("")
 
     # Add fields
+    if message_descriptor.fields:
+        lines.append("")
+        lines.append(PROTO_FILE_FIELD_HEADER)
     for field_descriptor in message_descriptor.fields:
-        field_line = PROTO_FILE_INDENT
+        # If the field is part of a oneof, defer it until adding oneofs
+        if field_descriptor.containing_oneof:
+            continue
+        lines.extend(_field_descriptor_to_file(field_descriptor, indent=1))
 
-        # Add the repeated qualifier if needed
-        if (
-            not _is_map_entry(field_descriptor.message_type)
-            and field_descriptor.label == field_descriptor.LABEL_REPEATED
-        ):
-            field_line += "repeated "
+    # Add oneofs
+    if message_descriptor.oneofs:
+        lines.append("")
+        lines.append(PROTO_FILE_ONEOF_HEADER)
+    for oneof_descriptor in message_descriptor.oneofs:
+        lines.extend(_oneof_descriptor_to_file(oneof_descriptor, indent=1))
 
-        # Add the type
-        field_line += _get_field_type_str(field_descriptor)
+    lines.append("}")
+    return _indent_lines(indent, lines)
 
-        # Add the name and number
-        field_line += f" {field_descriptor.name} = {field_descriptor.number};"
 
-        lines.append(field_line)
+def _field_descriptor_to_file(
+    field_descriptor: _descriptor.FieldDescriptor,
+    indent: int = 0,
+) -> List[str]:
+    """Get the string version of a field"""
 
+    # Add the repeated qualifier if needed
+    field_line = ""
+    if (
+        not _is_map_entry(field_descriptor.message_type)
+        and field_descriptor.label == field_descriptor.LABEL_REPEATED
+    ):
+        field_line += "repeated "
+
+    # Add the type
+    field_line += _get_field_type_str(field_descriptor)
+
+    # Add the name and number
+    field_line += f" {field_descriptor.name} = {field_descriptor.number};"
+    return _indent_lines(indent, [field_line])
+
+
+def _oneof_descriptor_to_file(
+    oneof_descriptor: _descriptor.OneofDescriptor,
+    indent: int = 0,
+) -> List[str]:
+    """Get the string version of a oneof"""
+    lines = []
+    lines.append(f"oneof {oneof_descriptor.name} {{")
+    for field_descriptor in oneof_descriptor.fields:
+        lines.extend(_field_descriptor_to_file(field_descriptor, indent=1))
     lines.append("}")
     return _indent_lines(indent, lines)
 
@@ -694,22 +738,22 @@ jtd_def = {
                 "enum": ["BLAM", "KAPOW"],
             }
         },
-        # # Descriminator (oneof)
-        # "bit": {
-        #     "discriminator": "bitType",
-        #     "mapping": {
-        #         "SCREW_DRIVER": {
-        #             "properties": {
-        #                 "isPhillips": {"type": "boolean"},
-        #             }
-        #         },
-        #         "DRILL": {
-        #             "properties": {
-        #                 "size": {"type": "float32"},
-        #             }
-        #         },
-        #     },
-        # },
+        # Descriminator (oneof)
+        "bit": {
+            "discriminator": "bitType",
+            "mapping": {
+                "SCREW_DRIVER": {
+                    "properties": {
+                        "isPhillips": {"type": "boolean"},
+                    }
+                },
+                "DRILL": {
+                    "properties": {
+                        "size": {"type": "float32"},
+                    }
+                },
+            },
+        },
     },
     # Ensure that optionalProperties are also handled
     "optionalProperties": {
