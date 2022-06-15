@@ -9,12 +9,6 @@ from typing import List, Union
 # Third Party
 from google.protobuf import descriptor as _descriptor
 
-# First Party
-import alog
-
-log = alog.use_channel("JTD2P")
-
-
 ## Globals #####################################################################
 
 
