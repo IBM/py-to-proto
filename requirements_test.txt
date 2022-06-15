@@ -1,0 +1,4 @@
+# Testing
+pytest>=6.2.5
+pytest-cov>=3.0.0
+pytest-xdist>=2.5.0
