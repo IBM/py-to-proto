@@ -105,12 +105,14 @@ def jtd_to_proto(
         imports=imports,
     )
     proto_kwargs = {}
+    is_enum = False
     if isinstance(descriptor_proto, descriptor_pb2.DescriptorProto):
         proto_kwargs["message_type"] = [descriptor_proto]
     elif isinstance(descriptor_proto, descriptor_pb2.EnumDescriptorProto):
+        is_enum = True
         proto_kwargs["enum_type"] = [descriptor_proto]
     else:
-        raise ValueError("Cannot create top-level proto for 'type'")
+        raise ValueError("Only messages and enums are supported")
 
     # Create the FileDescriptorProto with all messages
     log.debug("Creating FileDescriptorProto")
@@ -132,6 +134,8 @@ def jtd_to_proto(
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
+    if is_enum:
+        return descriptor_pool.FindEnumTypeByName(fullname)
     return descriptor_pool.FindMessageTypeByName(fullname)
 
 
@@ -236,14 +240,6 @@ def _jtd_to_proto_impl(
             )
         )
         return nested
-
-    # If the definition has "descriminator" in it, it's a oneof
-    descriminator = jtd_def.get("descriminator")
-    if descriminator is not None:
-        mapping = jtd_def.get("mapping")
-        if mapping is None:
-            raise ValueError("No 'mapping' given with 'descriminator'")
-        raise NotImplementedError("Descriminator not handled yet!")
 
     # If the object has "properties", it's a message
     properties = jtd_def.get("properties", {})
@@ -399,12 +395,6 @@ def _jtd_to_proto_impl(
                                         )
                                     )
                             nested_enums.append(nested_enum)
-
-                # Otherwise, it's an error!
-                else:
-                    assert (
-                        False
-                    ), f"Programming Error! Can't handle field of type {type(nested)}"
 
                 # Create the field descriptor
                 field_descriptors.append(
