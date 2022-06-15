@@ -559,7 +559,7 @@ def test_jtd_to_proto_top_level_enum():
 
     NOTE: This test also validates the use of the default descriptor pool
     """
-    msg_name = "Foo"
+    msg_name = "SomeEnum"
     package = "foo.bar"
     descriptor = jtd_to_proto(
         msg_name,

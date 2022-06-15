@@ -159,8 +159,8 @@ def test_descriptor_to_file_compilable_proto(temp_dpool):
     assert compile_proto_module(
         descriptor_to_file(
             jtd_to_proto(
-                "Foo",
-                "foo.bar",
+                "Widgets",
+                "foo.bar.baz.bat",
                 sample_jtd_def,
                 descriptor_pool=temp_dpool,
                 validate_jtd=True,
@@ -177,7 +177,7 @@ def test_descriptor_to_file_non_generated_proto():
     temp_pb2 = compile_proto_module(
         """
         syntax = "proto3";
-        package foo.bar;
+        package foo.bar.baz.biz;
 
         enum FooEnum {
             FOO = 0;
