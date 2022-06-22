@@ -54,7 +54,7 @@ RUN ./scripts/publish.sh
 FROM base as release_test
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
-COPY ./test /src/test
+COPY ./tests /src/tests
 COPY ./scripts/run_tests.sh /src/scripts/run_tests.sh
 COPY ./scripts/install_release.sh /src/scripts/install_release.sh
 RUN true && \
