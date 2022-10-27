@@ -5,6 +5,7 @@ Descriptor objects
 
 # Standard
 from typing import Type
+import os
 
 # Third Party
 from google.protobuf import descriptor as _descriptor
@@ -35,9 +36,20 @@ def descriptor_to_message_class(
             f"Create the serialized .proto file content holding all definitions for {descriptor.name}"
             return descriptor_to_file(cls.DESCRIPTOR)
 
+        @classmethod
+        def write_proto_file(cls, root_dir: str = "."):
+            "Write out the proto file to the target directory"
+            with open(os.path.join(root_dir, cls.DESCRIPTOR.file.name), "w") as handle:
+                handle.write(cls.to_proto_file())
+
         setattr(
             message_class,
             "to_proto_file",
             to_proto_file,
+        )
+        setattr(
+            message_class,
+            "write_proto_file",
+            write_proto_file,
         )
     return message_class
