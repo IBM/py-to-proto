@@ -49,6 +49,8 @@ JTD_TO_PROTO_TYPES = {
     "uint8": _descriptor.FieldDescriptor.TYPE_UINT32,
     "int32": _descriptor.FieldDescriptor.TYPE_INT32,
     "uint32": _descriptor.FieldDescriptor.TYPE_UINT32,
+    # Not strictly part of the JTD spec, but important for protobuf messages
+    "bytes": _descriptor.FieldDescriptor.TYPE_BYTES,
 }
 
 ## Interface ###################################################################
@@ -91,7 +93,7 @@ def jtd_to_proto(
         log.debug2("Validating JTD")
         jtd.schema.Schema.from_dict(jtd_def)
 
-    # This list will be used to aggregate the list of message DescriporProtos
+    # This list will be used to aggregate the list of message DescriptorProtos
     # for any nested message objects defined inline
     imports = []
 
