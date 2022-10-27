@@ -60,10 +60,25 @@ Foo = jtd_to_proto.descriptor_to_message_class(
     )
 )
 
-def write_foo_proto(filename: str):
-    """Write out the .proto file for Foo to the given filename"""
-    with open(filename, "w") as handle:
-        handle.write(Foo.to_proto_file())
+# Declare an object that references Foo as the type for a field
+Bar = jtd_to_proto.descriptor_to_message_class(
+    jtd_to_proto.jtd_to_proto(
+        name="Bar",
+        package="foobar",
+        jtd_def={
+            "properties": {
+                "baz": {
+                    "type": Foo.DESCRIPTOR,
+                },
+            },
+        },
+    ),
+)
+
+def write_protos(proto_dir: str):
+    """Write out the .proto files for Foo and Bar to the given directory"""
+    Foo.write_proto_file(proto_dir)
+    Bar.write_proto_file(proto_dir)
 ```
 
 ## Similar Projects
