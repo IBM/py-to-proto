@@ -166,25 +166,33 @@ def _jtd_to_proto_impl(
     # and look up the proto type
     type_name = jtd_def.get("type")
     if type_name is not None:
-        proto_type_val = JTD_TO_PROTO_TYPES.get(type_name)
-        if proto_type_val is None:
-            raise ValueError(f"No proto mapping for type '{type_name}'")
-
-        # If this is a primitive, just return it
-        if isinstance(proto_type_val, int):
-            return proto_type_val
-
-        # Otherwise, assume it's a known DescriptorProto
+        # If the type name is itself a descriptor, use it as the value directly
+        proto_type_val = None
+        proto_type_descriptor = None
+        if isinstance(type_name, _descriptor.Descriptor):
+            proto_type_descriptor = type_name
         else:
-            type_name = proto_type_val.DESCRIPTOR.full_name
-            import_file = proto_type_val.DESCRIPTOR.file.name
-            log.debug3(
-                "Adding import file %s for known nested type %s",
-                import_file,
-                type_name,
-            )
-            imports.append(import_file)
-            return type_name
+            proto_type_val = JTD_TO_PROTO_TYPES.get(type_name)
+            if proto_type_val is None:
+                raise ValueError(f"No proto mapping for type '{type_name}'")
+
+            # If this is a primitive, just return it
+            if isinstance(proto_type_val, int):
+                return proto_type_val
+
+            # Otherwise, assume it's a known DescriptorProto
+            else:
+                proto_type_descriptor = proto_type_val.DESCRIPTOR
+
+        type_name = proto_type_descriptor.full_name
+        import_file = proto_type_descriptor.file.name
+        log.debug3(
+            "Adding import file %s for known nested type %s",
+            import_file,
+            type_name,
+        )
+        imports.append(import_file)
+        return type_name
 
     # If the definition has "enum" it's an enum
     enum = jtd_def.get("enum")

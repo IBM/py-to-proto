@@ -580,6 +580,20 @@ def test_jtd_to_proto_top_level_enum():
     }
 
 
+def test_jtd_to_proto_reference_external_descriptor():
+    """Test that values in the JTD schema can be references to other in-memory
+    descriptors
+    """
+
+    nested_descriptor = jtd_to_proto(
+        "Foo", "foo.bar", {"properties": {"foo": {"type": "string"}}}
+    )
+    wrapper_descriptor = jtd_to_proto(
+        "Bar", "foo.bar", {"properties": {"bar": {"type": nested_descriptor}}}
+    )
+    assert wrapper_descriptor.fields_by_name["bar"].message_type is nested_descriptor
+
+
 ## Error Cases #################################################################
 
 
