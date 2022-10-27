@@ -93,7 +93,7 @@ def jtd_to_proto(
         log.debug2("Validating JTD")
         jtd.schema.Schema.from_dict(jtd_def)
 
-    # This list will be used to aggregate the list of message DescriporProtos
+    # This list will be used to aggregate the list of message DescriptorProtos
     # for any nested message objects defined inline
     imports = []
 
