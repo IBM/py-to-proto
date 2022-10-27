@@ -594,6 +594,20 @@ def test_jtd_to_proto_reference_external_descriptor():
     assert wrapper_descriptor.fields_by_name["bar"].message_type is nested_descriptor
 
 
+def test_jtd_to_proto_bytes():
+    """Make sure that fields can have type bytes and that the messages can be
+    validated even with bytes which is not in the JTD spec
+    """
+    bytes_descriptor = jtd_to_proto(
+        "HasBytes",
+        "foo.bar",
+        {"properties": {"foo": {"type": "bytes"}}},
+        validate_jtd=True,
+    )
+    bytes_field = bytes_descriptor.fields_by_name["foo"]
+    assert bytes_field.type == bytes_field.TYPE_BYTES
+
+
 ## Error Cases #################################################################
 
 
