@@ -167,23 +167,23 @@ def _jtd_to_proto_impl(
     type_name = jtd_def.get("type")
     if type_name is not None:
         # If the type name is itself a descriptor, use it as the value directly
-        proto_type_val = None
         proto_type_descriptor = None
         if isinstance(type_name, _descriptor.Descriptor):
             proto_type_descriptor = type_name
         else:
             proto_type_val = JTD_TO_PROTO_TYPES.get(type_name)
+            proto_type_descriptor = getattr(proto_type_val, "DESCRIPTOR", None)
             if proto_type_val is None:
                 raise ValueError(f"No proto mapping for type '{type_name}'")
-
-            # If this is a primitive, just return it
-            if isinstance(proto_type_val, int):
+            elif proto_type_descriptor is None:
+                assert isinstance(
+                    proto_type_val, int
+                ), f"PROGRAMMING ERROR: Bad proto value type for {type_name}"
                 return proto_type_val
 
-            # Otherwise, assume it's a known DescriptorProto
-            else:
-                proto_type_descriptor = proto_type_val.DESCRIPTOR
-
+        assert (
+            proto_type_descriptor is not None
+        ), "PROGRAMMING ERROR: proto_type_descriptor not defined"
         type_name = proto_type_descriptor.full_name
         import_file = proto_type_descriptor.file.name
         log.debug3(
