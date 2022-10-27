@@ -15,6 +15,10 @@ with open(os.path.join(python_base, "README.md"), "r") as handle:
 version = os.environ.get("RELEASE_VERSION")
 assert version is not None, "Must set RELEASE_VERSION"
 
+# Read in the requirements
+with open(os.path.join(python_base, "requirements.txt"), "r") as handle:
+    requirements = handle.read()
+
 setup(
     name="jtd_to_proto",
     version=version,
@@ -35,4 +39,5 @@ setup(
     ],
     keywords=["json", "json typedef", "jtd", "protobuf", "proto"],
     packages=["jtd_to_proto"],
+    install_requires=requirements,
 )
