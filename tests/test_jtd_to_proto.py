@@ -607,6 +607,35 @@ def test_jtd_to_proto_bytes():
     bytes_field = bytes_descriptor.fields_by_name["foo"]
     assert bytes_field.type == bytes_field.TYPE_BYTES
 
+def test_jtd_to_proto_int64s():
+    """Make sure that fields can have type int64 and uint64 and that the messages
+    can be validated even with these not in the JTD spec
+    """
+    bytes_descriptor = jtd_to_proto(
+        "HasInt64s",
+        "foo.bar",
+        {"properties": {"foo": {"type": "int64"}, "baz": {"type": "uint64"}}},
+        validate_jtd=True,
+    )
+    bytes_field = bytes_descriptor.fields_by_name["foo"]
+    assert bytes_field.type == bytes_field.TYPE_INT64
+    bytes_field = bytes_descriptor.fields_by_name["baz"]
+    assert bytes_field.type == bytes_field.TYPE_UINT64
+
+def test_jtd_to_proto_any():
+    """Make sure that fields can have type Any and that the messages
+    can be validated even with these not in the JTD spec
+    """
+    bytes_descriptor = jtd_to_proto(
+        "HasInt64s",
+        "foo.bar",
+        {"properties": {"foo": {"type": "int64"}, "baz": {"type": "uint64"}}},
+        validate_jtd=True,
+    )
+    bytes_field = bytes_descriptor.fields_by_name["foo"]
+    assert bytes_field.type == bytes_field.TYPE_INT64
+    bytes_field = bytes_descriptor.fields_by_name["baz"]
+    assert bytes_field.type == bytes_field.TYPE_UINT64
 
 ## Error Cases #################################################################
 
