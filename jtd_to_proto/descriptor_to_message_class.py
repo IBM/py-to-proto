@@ -29,12 +29,23 @@ def descriptor_to_message_class(
         message_class:  Type[message.Message]
     """
     message_class = reflection.message_factory.MessageFactory().GetPrototype(descriptor)
+
+    # Add to_proto_file
     if not hasattr(message_class, "to_proto_file"):
 
         @classmethod
         def to_proto_file(cls) -> str:
             f"Create the serialized .proto file content holding all definitions for {descriptor.name}"
             return descriptor_to_file(cls.DESCRIPTOR)
+
+        setattr(
+            message_class,
+            "to_proto_file",
+            to_proto_file,
+        )
+
+    # Add write_proto_file
+    if not hasattr(message_class, "write_proto_file"):
 
         @classmethod
         def write_proto_file(cls, root_dir: str = "."):
@@ -44,12 +55,13 @@ def descriptor_to_message_class(
 
         setattr(
             message_class,
-            "to_proto_file",
-            to_proto_file,
-        )
-        setattr(
-            message_class,
             "write_proto_file",
             write_proto_file,
         )
+
+    # Recursively add nested messages
+    for nested_message_descriptor in descriptor.nested_types:
+        nested_message_class = descriptor_to_message_class(nested_message_descriptor)
+        setattr(message_class, nested_message_descriptor.name, nested_message_class)
+
     return message_class

@@ -83,3 +83,26 @@ def test_descriptor_to_message_class_write_proto_file(temp_dpool):
         with open(os.path.join(workdir, Bar.DESCRIPTOR.file.name), "r") as handle:
             bar_content = handle.read()
         assert f'import "{Foo.DESCRIPTOR.file.name}"' in bar_content
+
+
+def test_descriptor_to_message_class_nested_messages():
+    """Make sure that nested messages are wrapped and added to the parents"""
+    top = descriptor_to_message_class(
+        jtd_to_proto(
+            name="Top",
+            package="foobar",
+            jtd_def={
+                "properties": {
+                    "ghost": {
+                        "properties": {
+                            "boo": {
+                                "type": "string",
+                            }
+                        }
+                    }
+                }
+            },
+        )
+    )
+    assert issubclass(top, message.Message)
+    assert issubclass(top.Ghost, message.Message)
