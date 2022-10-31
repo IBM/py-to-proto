@@ -4,15 +4,13 @@ import copy
 import re
 
 # Third Party
-from google.protobuf import any_pb2
+from google.protobuf import any_pb2, descriptor_pb2, struct_pb2, timestamp_pb2
 from google.protobuf import descriptor as _descriptor
-from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
-from google.protobuf import struct_pb2, timestamp_pb2
+import jtd
 
 # First Party
 import alog
-import jtd
 
 log = alog.use_channel("JTD2P")
 
