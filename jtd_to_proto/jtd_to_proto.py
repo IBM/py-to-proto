@@ -4,14 +4,15 @@ import copy
 import re
 
 # Third Party
+from google.protobuf import any_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
-import jtd
 
 # First Party
 import alog
+import jtd
 
 log = alog.use_channel("JTD2P")
 
@@ -31,6 +32,7 @@ def _to_upper_camel(snake_str: str) -> str:
 ## Globals #####################################################################
 
 JTD_TO_PROTO_TYPES = {
+    "any": any_pb2.Any,
     "boolean": _descriptor.FieldDescriptor.TYPE_BOOL,
     "string": _descriptor.FieldDescriptor.TYPE_STRING,
     "timestamp": timestamp_pb2.Timestamp,

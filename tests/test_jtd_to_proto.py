@@ -3,6 +3,7 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
+from google.protobuf import any_pb2
 from google.protobuf.descriptor import FieldDescriptor
 import pytest
 
@@ -606,6 +607,21 @@ def test_jtd_to_proto_bytes():
     )
     bytes_field = bytes_descriptor.fields_by_name["foo"]
     assert bytes_field.type == bytes_field.TYPE_BYTES
+
+
+def test_jtd_to_proto_any():
+    """Make sure that fields can have type Any and that the messages can be
+    validated even with any which is not in the JTD spec
+    """
+    bytes_descriptor = jtd_to_proto(
+        "HasAny",
+        "foo.bar",
+        {"properties": {"foo": {"type": "any"}}},
+        validate_jtd=True,
+    )
+    bytes_field = bytes_descriptor.fields_by_name["foo"]
+    assert bytes_field.type == bytes_field.TYPE_MESSAGE
+    assert bytes_field.message_type.full_name == "google.protobuf.Any"
 
 
 ## Error Cases #################################################################
