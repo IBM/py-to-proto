@@ -608,6 +608,34 @@ def test_jtd_to_proto_bytes():
     assert bytes_field.type == bytes_field.TYPE_BYTES
 
 
+def test_jtd_to_proto_int64():
+    """Make sure that fields can have type int64 and that the messages can be
+    validated.
+    """
+    int64_descriptor = jtd_to_proto(
+        "HasInt64",
+        "foo.bar",
+        {"properties": {"foo": {"type": "int64"}}},
+        validate_jtd=True,
+    )
+    int64_field = int64_descriptor.fields_by_name["foo"]
+    assert int64_field.type == int64_field.TYPE_INT64
+
+
+def test_jtd_to_proto_uint64():
+    """Make sure that fields can have type uint64 and that the messages can be
+    validated.
+    """
+    uint64_descriptor = jtd_to_proto(
+        "HasUInt64",
+        "foo.bar",
+        {"properties": {"foo": {"type": "uint64"}}},
+        validate_jtd=True,
+    )
+    uint64_field = uint64_descriptor.fields_by_name["foo"]
+    assert uint64_field.type == uint64_field.TYPE_UINT64
+
+
 ## Error Cases #################################################################
 
 
