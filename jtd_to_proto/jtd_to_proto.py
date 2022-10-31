@@ -50,11 +50,7 @@ JTD_TO_PROTO_TYPES = {
     "int32": _descriptor.FieldDescriptor.TYPE_INT32,
     "uint32": _descriptor.FieldDescriptor.TYPE_UINT32,
     "int64": _descriptor.FieldDescriptor.TYPE_INT64,
-<<<<<<< HEAD
     "uint64": _descriptor.FieldDescriptor.TYPE_UINT64,
-=======
-     "uint64": _descriptor.FieldDescriptor.TYPE_UINT64,
->>>>>>> feat:Introduce support for Int64 and UInt64 for protobuf
     # Not strictly part of the JTD spec, but important for protobuf messages
     "bytes": _descriptor.FieldDescriptor.TYPE_BYTES,
 }
