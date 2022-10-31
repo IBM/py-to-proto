@@ -267,7 +267,7 @@ def _jtd_to_proto_impl(
             log.debug2(
                 "Handling property [%s.%s] (%d)", message_name, field_name, field_index
             )
-            log.debug3(field_def)
+            log.debug3(str(field_def))
 
             field_kwargs = {
                 "name": field_name,
