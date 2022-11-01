@@ -3,7 +3,7 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf.descriptor import FieldDescriptor
+from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
@@ -205,6 +205,20 @@ def test_jtd_to_proto_enum(temp_dpool):
     assert list(fields.keys()) == ["bat"]
     assert fields["bat"].type == fields["bat"].TYPE_ENUM
     assert fields["bat"].label == fields["bat"].LABEL_OPTIONAL
+
+
+def test_jtd_to_proto_top_level_enum(temp_dpool):
+    """Ensure that enums can be converted"""
+    msg_name = "Foo"
+    package = "foo.bar"
+    descriptor = jtd_to_proto(
+        msg_name,
+        package,
+        {"enum": ["VAMPIRE", "DRACULA"]},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    assert isinstance(descriptor, EnumDescriptor)
 
 
 def test_jtd_to_proto_arrays_of_primitives(temp_dpool):
