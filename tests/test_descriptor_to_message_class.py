@@ -8,6 +8,7 @@ import tempfile
 
 # Third Party
 from google.protobuf import message
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 # Local
 from .helpers import temp_dpool
@@ -85,7 +86,7 @@ def test_descriptor_to_message_class_write_proto_file(temp_dpool):
         assert f'import "{Foo.DESCRIPTOR.file.name}"' in bar_content
 
 
-def test_descriptor_to_message_class_nested_messages():
+def test_descriptor_to_message_class_nested_messages(temp_dpool):
     """Make sure that nested messages are wrapped and added to the parents"""
     top = descriptor_to_message_class(
         jtd_to_proto(
@@ -102,7 +103,41 @@ def test_descriptor_to_message_class_nested_messages():
                     }
                 }
             },
+            descriptor_pool=temp_dpool,
         )
     )
     assert issubclass(top, message.Message)
     assert issubclass(top.Ghost, message.Message)
+
+
+def test_descriptor_to_message_class_nested_enums(temp_dpool):
+    """Make sure that nested enums are wrapped and added to the parents"""
+    top = descriptor_to_message_class(
+        jtd_to_proto(
+            name="Top",
+            package="foobar",
+            jtd_def={
+                "properties": {
+                    "bat": {
+                        "enum": ["VAMPIRE", "BASEBALL"],
+                    }
+                }
+            },
+            descriptor_pool=temp_dpool,
+        )
+    )
+    assert issubclass(top, message.Message)
+    assert isinstance(top.Bat, EnumTypeWrapper)
+
+
+def test_descriptor_to_message_class_top_level_enum(temp_dpool):
+    """Make sure that a top-level EnumDescriptor results in an EnumTypeWrapper"""
+    top = descriptor_to_message_class(
+        jtd_to_proto(
+            name="Top",
+            package="foobar",
+            jtd_def={"enum": ["VAMPIRE", "DRACULA"]},
+            descriptor_pool=temp_dpool,
+        )
+    )
+    assert isinstance(top, EnumTypeWrapper)
