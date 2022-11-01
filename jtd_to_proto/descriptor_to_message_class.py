@@ -72,4 +72,12 @@ def descriptor_to_message_class(
         nested_message_class = descriptor_to_message_class(nested_message_descriptor)
         setattr(message_class, nested_message_descriptor.name, nested_message_class)
 
+    # Recursively add nested enums
+    for nested_enum_descriptor in descriptor.enum_types:
+        setattr(
+            message_class,
+            nested_enum_descriptor.name,
+            descriptor_to_message_class(nested_enum_descriptor),
+        )
+
     return message_class
