@@ -91,8 +91,8 @@ def _maybe_classmethod(func: Callable, parent: Any):
 
     if isinstance(parent, type):
 
-        @wraps(func)
         @classmethod
+        @wraps(func)
         def _wrapper(cls, *args, **kwargs):
             return func(cls, *args, **kwargs)
 
