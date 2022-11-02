@@ -615,6 +615,26 @@ def test_jtd_to_proto_reference_external_descriptor(temp_dpool):
     assert wrapper_descriptor.fields_by_name["bar"].message_type is nested_descriptor
 
 
+def test_jtd_to_proto_reference_external_enum_descriptor(temp_dpool):
+    """Test that values in the JTD schema can be references to other in-memory
+    enum descriptors
+    """
+
+    enum_descriptor = jtd_to_proto(
+        "Foo",
+        "foo.bar",
+        {"enum": ["FOO", "BAR"]},
+        descriptor_pool=temp_dpool,
+    )
+    wrapper_descriptor = jtd_to_proto(
+        "Bar",
+        "foo.bar",
+        {"properties": {"bar": {"type": enum_descriptor}}},
+        descriptor_pool=temp_dpool,
+    )
+    assert wrapper_descriptor.fields_by_name["bar"].enum_type is enum_descriptor
+
+
 def test_jtd_to_proto_bytes(temp_dpool):
     """Make sure that fields can have type bytes and that the messages can be
     validated even with bytes which is not in the JTD spec
