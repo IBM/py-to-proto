@@ -4,7 +4,9 @@ Descriptor objects
 """
 
 # Standard
-from typing import Type, Union
+from functools import wraps
+from types import MethodType
+from typing import Any, Callable, Type, Union
 import os
 
 # Third Party
@@ -32,52 +34,74 @@ def descriptor_to_message_class(
     """
     # Handle enum descriptors
     if isinstance(descriptor, _descriptor.EnumDescriptor):
-        return EnumTypeWrapper(descriptor)
+        message_class = EnumTypeWrapper(descriptor)
 
     # Handle message descriptors
+    else:
+        message_class = reflection.message_factory.MessageFactory().GetPrototype(
+            descriptor
+        )
 
-    message_class = reflection.message_factory.MessageFactory().GetPrototype(descriptor)
+        # Recursively add nested messages
+        for nested_message_descriptor in descriptor.nested_types:
+            nested_message_class = descriptor_to_message_class(
+                nested_message_descriptor
+            )
+            setattr(message_class, nested_message_descriptor.name, nested_message_class)
+
+        # Recursively add nested enums
+        for nested_enum_descriptor in descriptor.enum_types:
+            setattr(
+                message_class,
+                nested_enum_descriptor.name,
+                descriptor_to_message_class(nested_enum_descriptor),
+            )
 
     # Add to_proto_file
     if not hasattr(message_class, "to_proto_file"):
 
-        @classmethod
-        def to_proto_file(cls) -> str:
+        def to_proto_file(first_arg) -> str:
             f"Create the serialized .proto file content holding all definitions for {descriptor.name}"
-            return descriptor_to_file(cls.DESCRIPTOR)
+            return descriptor_to_file(first_arg.DESCRIPTOR)
 
-        setattr(
-            message_class,
-            "to_proto_file",
-            to_proto_file,
-        )
+        _maybe_classmethod(to_proto_file, message_class)
 
     # Add write_proto_file
     if not hasattr(message_class, "write_proto_file"):
 
-        @classmethod
-        def write_proto_file(cls, root_dir: str = "."):
+        def write_proto_file(first_arg, root_dir: str = "."):
             "Write out the proto file to the target directory"
-            with open(os.path.join(root_dir, cls.DESCRIPTOR.file.name), "w") as handle:
-                handle.write(cls.to_proto_file())
+            with open(
+                os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
+            ) as handle:
+                handle.write(first_arg.to_proto_file())
 
-        setattr(
-            message_class,
-            "write_proto_file",
-            write_proto_file,
-        )
-
-    # Recursively add nested messages
-    for nested_message_descriptor in descriptor.nested_types:
-        nested_message_class = descriptor_to_message_class(nested_message_descriptor)
-        setattr(message_class, nested_message_descriptor.name, nested_message_class)
-
-    # Recursively add nested enums
-    for nested_enum_descriptor in descriptor.enum_types:
-        setattr(
-            message_class,
-            nested_enum_descriptor.name,
-            descriptor_to_message_class(nested_enum_descriptor),
-        )
+        _maybe_classmethod(write_proto_file, message_class)
 
     return message_class
+
+
+## Implementation Details ######################################################
+
+
+def _maybe_classmethod(func: Callable, parent: Any):
+    """Helper to attach the given function to the parent as either a classmethod
+    of an instance method
+    """
+
+    if isinstance(parent, type):
+
+        @wraps(func)
+        @classmethod
+        def _wrapper(cls, *args, **kwargs):
+            return func(cls, *args, **kwargs)
+
+    else:
+
+        @wraps(func)
+        def _wrapper(self, *args, **kwargs):
+            return func(self, *args, **kwargs)
+
+        _wrapper = MethodType(_wrapper, parent)
+
+    setattr(parent, func.__name__, _wrapper)

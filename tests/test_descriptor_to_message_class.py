@@ -141,3 +141,6 @@ def test_descriptor_to_message_class_top_level_enum(temp_dpool):
         )
     )
     assert isinstance(top, EnumTypeWrapper)
+    with tempfile.TemporaryDirectory() as workdir:
+        top.write_proto_file(workdir)
+        assert os.listdir(workdir) == [top.DESCRIPTOR.file.name]
