@@ -58,7 +58,7 @@ def descriptor_to_file(
     """
 
     # If this is a message descriptor, use its corresponding FileDescriptor
-    if isinstance(descriptor, _descriptor.Descriptor):
+    if isinstance(descriptor, (_descriptor.Descriptor, _descriptor.EnumDescriptor)):
         descriptor = descriptor.file
     if not isinstance(descriptor, _descriptor.FileDescriptor):
         raise ValueError(f"Invalid file descriptor of type {type(descriptor)}")
