@@ -124,7 +124,7 @@ def jtd_to_proto(
         name=f"{name.lower()}.proto",
         package=package,
         syntax="proto3",
-        dependency=imports,
+        dependency=sorted(list(set(imports))),
         **proto_kwargs,
     )
     log.debug4("Full FileDescriptorProto:\n%s", fd_proto)
