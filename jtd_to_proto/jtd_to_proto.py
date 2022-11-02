@@ -1,5 +1,5 @@
 # Standard
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 import copy
 import re
 
@@ -124,7 +124,7 @@ def jtd_to_proto(
         name=f"{name.lower()}.proto",
         package=package,
         syntax="proto3",
-        dependency=imports,
+        dependency=sorted(list(set(imports))),
         **proto_kwargs,
     )
     log.debug4("Full FileDescriptorProto:\n%s", fd_proto)
@@ -156,7 +156,7 @@ def _jtd_to_proto_impl(
     descriptor_pb2.DescriptorProto,
     descriptor_pb2.EnumDescriptorProto,
     int,
-    str,
+    Tuple[str, int],
 ]:
     """Recursive implementation of converting messages, fields, enums, arrays,
     and maps from JTD to their respective *DescriptorProto representations.
@@ -172,7 +172,11 @@ def _jtd_to_proto_impl(
     if type_name is not None:
         # If the type name is itself a descriptor, use it as the value directly
         proto_type_descriptor = None
+        is_enum = False
         if isinstance(type_name, _descriptor.Descriptor):
+            proto_type_descriptor = type_name
+        elif isinstance(type_name, _descriptor.EnumDescriptor):
+            is_enum = True
             proto_type_descriptor = type_name
         else:
             proto_type_val = JTD_TO_PROTO_TYPES.get(type_name)
@@ -196,7 +200,14 @@ def _jtd_to_proto_impl(
             type_name,
         )
         imports.append(import_file)
-        return type_name
+        return (
+            type_name,
+            (
+                _descriptor.FieldDescriptor.TYPE_ENUM
+                if is_enum
+                else _descriptor.FieldDescriptor.TYPE_MESSAGE
+            ),
+        )
 
     # If the definition has "enum" it's an enum
     enum = jtd_def.get("enum")
@@ -343,12 +354,12 @@ def _jtd_to_proto_impl(
                 if isinstance(nested, int):
                     nested_field_kwargs["type"] = nested
 
-                # If the result is a tuple, it's an imported message name
-                elif isinstance(nested, str):
-                    nested_field_kwargs[
-                        "type"
-                    ] = _descriptor.FieldDescriptor.TYPE_MESSAGE
-                    nested_field_kwargs["type_name"] = nested
+                # If the result is a tuple, it's an imported message or name
+                elif isinstance(nested, tuple):
+                    (
+                        nested_field_kwargs["type_name"],
+                        nested_field_kwargs["type"],
+                    ) = nested
 
                 # If the result is an enum, add it as a nested enum
                 elif isinstance(nested, descriptor_pb2.EnumDescriptorProto):
