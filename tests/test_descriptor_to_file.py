@@ -217,3 +217,15 @@ def test_descriptor_to_file_invalid_descriptor_arg():
     """Make sure an error is raised if the argument is not a valid descriptor"""
     with pytest.raises(ValueError):
         descriptor_to_file({"foo": "bar"})
+
+
+def test_descriptor_to_file_enum_descriptor(temp_dpool):
+    """Make sure descriptor_to_file can be called on a EnumDescriptor"""
+    enum_descriptor = jtd_to_proto(
+        "Foo",
+        "foo.bar",
+        {"enum": ["FOO", "BAR"]},
+        descriptor_pool=temp_dpool,
+    )
+    res = descriptor_to_file(enum_descriptor)
+    assert "enum Foo {" in res
