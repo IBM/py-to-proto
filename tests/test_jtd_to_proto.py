@@ -3,8 +3,7 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf import any_pb2
-from google.protobuf.descriptor import FieldDescriptor
+from google.protobuf.descriptor import any_pb2, EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
@@ -206,6 +205,20 @@ def test_jtd_to_proto_enum(temp_dpool):
     assert list(fields.keys()) == ["bat"]
     assert fields["bat"].type == fields["bat"].TYPE_ENUM
     assert fields["bat"].label == fields["bat"].LABEL_OPTIONAL
+
+
+def test_jtd_to_proto_top_level_enum(temp_dpool):
+    """Ensure that enums can be converted"""
+    msg_name = "Foo"
+    package = "foo.bar"
+    descriptor = jtd_to_proto(
+        msg_name,
+        package,
+        {"enum": ["VAMPIRE", "DRACULA"]},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    assert isinstance(descriptor, EnumDescriptor)
 
 
 def test_jtd_to_proto_arrays_of_primitives(temp_dpool):
@@ -555,7 +568,7 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
     assert fields["metoo"].label == fields["metoo"].LABEL_OPTIONAL
 
 
-def test_jtd_to_proto_top_level_enum():
+def test_jtd_to_proto_top_level_enum(temp_dpool):
     """Make sure that a top-level enum can be converted
 
     NOTE: This test also validates the use of the default descriptor pool
@@ -566,6 +579,7 @@ def test_jtd_to_proto_top_level_enum():
         msg_name,
         package,
         {"enum": ["FOO", "BAR"]},
+        descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
     # Validate message naming
@@ -581,21 +595,47 @@ def test_jtd_to_proto_top_level_enum():
     }
 
 
-def test_jtd_to_proto_reference_external_descriptor():
+def test_jtd_to_proto_reference_external_descriptor(temp_dpool):
     """Test that values in the JTD schema can be references to other in-memory
     descriptors
     """
 
     nested_descriptor = jtd_to_proto(
-        "Foo", "foo.bar", {"properties": {"foo": {"type": "string"}}}
+        "Foo",
+        "foo.bar",
+        {"properties": {"foo": {"type": "string"}}},
+        descriptor_pool=temp_dpool,
     )
     wrapper_descriptor = jtd_to_proto(
-        "Bar", "foo.bar", {"properties": {"bar": {"type": nested_descriptor}}}
+        "Bar",
+        "foo.bar",
+        {"properties": {"bar": {"type": nested_descriptor}}},
+        descriptor_pool=temp_dpool,
     )
     assert wrapper_descriptor.fields_by_name["bar"].message_type is nested_descriptor
 
 
-def test_jtd_to_proto_bytes():
+def test_jtd_to_proto_reference_external_enum_descriptor(temp_dpool):
+    """Test that values in the JTD schema can be references to other in-memory
+    enum descriptors
+    """
+
+    enum_descriptor = jtd_to_proto(
+        "Foo",
+        "foo.bar",
+        {"enum": ["FOO", "BAR"]},
+        descriptor_pool=temp_dpool,
+    )
+    wrapper_descriptor = jtd_to_proto(
+        "Bar",
+        "foo.bar",
+        {"properties": {"bar": {"type": enum_descriptor}}},
+        descriptor_pool=temp_dpool,
+    )
+    assert wrapper_descriptor.fields_by_name["bar"].enum_type is enum_descriptor
+
+
+def test_jtd_to_proto_bytes(temp_dpool):
     """Make sure that fields can have type bytes and that the messages can be
     validated even with bytes which is not in the JTD spec
     """
@@ -603,6 +643,7 @@ def test_jtd_to_proto_bytes():
         "HasBytes",
         "foo.bar",
         {"properties": {"foo": {"type": "bytes"}}},
+        descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
     bytes_field = bytes_descriptor.fields_by_name["foo"]
@@ -622,6 +663,52 @@ def test_jtd_to_proto_any():
     bytes_field = bytes_descriptor.fields_by_name["foo"]
     assert bytes_field.type == bytes_field.TYPE_MESSAGE
     assert bytes_field.message_type.full_name == "google.protobuf.Any"
+
+def test_jtd_to_proto_int64(temp_dpool):
+    """Make sure that fields can have type int64 and that the messages can be
+    validated.
+    """
+    int64_descriptor = jtd_to_proto(
+        "HasInt64",
+        "foo.bar",
+        {"properties": {"foo": {"type": "int64"}}},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    int64_field = int64_descriptor.fields_by_name["foo"]
+    assert int64_field.type == int64_field.TYPE_INT64
+
+
+def test_jtd_to_proto_uint64(temp_dpool):
+    """Make sure that fields can have type uint64 and that the messages can be
+    validated.
+    """
+    uint64_descriptor = jtd_to_proto(
+        "HasUInt64",
+        "foo.bar",
+        {"properties": {"foo": {"type": "uint64"}}},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    uint64_field = uint64_descriptor.fields_by_name["foo"]
+    assert uint64_field.type == uint64_field.TYPE_UINT64
+
+
+def test_jtd_to_proto_default_dpool():
+    """This test ensures that without an explicitly passed descriptor pool, the
+    default is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
+    """
+    jtd_to_proto(
+        "Foo",
+        "foo.bar",
+        {
+            "properties": {
+                "foo": {
+                    "type": "boolean",
+                },
+            }
+        },
+    )
 
 
 ## Error Cases #################################################################
