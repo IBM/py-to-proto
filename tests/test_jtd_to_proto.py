@@ -3,7 +3,7 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf.descriptor import any_pb2, EnumDescriptor, FieldDescriptor
+from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor, any_pb2
 import pytest
 
 # Local
@@ -663,6 +663,7 @@ def test_jtd_to_proto_any():
     bytes_field = bytes_descriptor.fields_by_name["foo"]
     assert bytes_field.type == bytes_field.TYPE_MESSAGE
     assert bytes_field.message_type.full_name == "google.protobuf.Any"
+
 
 def test_jtd_to_proto_int64(temp_dpool):
     """Make sure that fields can have type int64 and that the messages can be
