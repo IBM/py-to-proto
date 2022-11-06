@@ -3,7 +3,8 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor, any_pb2
+from google.protobuf import any_pb2
+from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
