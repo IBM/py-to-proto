@@ -16,6 +16,7 @@ import alog
 
 log = alog.use_channel("JTD2P")
 
+
 ## Utils #######################################################################
 
 
@@ -24,8 +25,8 @@ def _to_upper_camel(snake_str: str) -> str:
     if not snake_str:
         return snake_str
     return (
-        snake_str[0].upper()
-        + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
+            snake_str[0].upper()
+            + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
     )
 
 
@@ -57,16 +58,114 @@ JTD_TO_PROTO_TYPES = {
     "bytes": _descriptor.FieldDescriptor.TYPE_BYTES,
 }
 
+
 ## Interface ###################################################################
+
+def jtd_to_service(
+        name: str,
+        package: str,
+        jtd_def: Dict[str, Union[dict, str]],
+        *,
+        validate_jtd: bool = False,
+        descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+) -> _descriptor.ServiceDescriptor:
+    """Convert a JTD schema into a set of proto DESCRIPTOR objects.
+    Operates on service definitions.
+
+    Reference: https://jsontypedef.com/docs/jtd-in-5-minutes/
+
+    Args:
+        name:  str
+            The name for the top-level service object
+        package:  str
+            The proto package name to use for this service
+        jtd_def:  Dict[str, Union[dict, str]]
+            The full JTD schema dict
+
+    Kwargs:
+        validate_jtd:  bool
+            Whether or not to validate the JTD schema
+        descriptor_pool:  Optional[descriptor_pool.DescriptorPool]
+            If given, this DescriptorPool will be used to aggregate the set of
+            message descriptors
+
+    Returns:
+        descriptor:  descriptor.Descriptor
+            The top-level MessageDescriptor corresponding to this jtd definition
+    """
+    # If performing validation, attempt to parse schema with jtd and throw away
+    # the results
+    if validate_jtd:
+        log.debug2("Validating JTD")
+        jtd.schema.Schema.from_dict(jtd_def)
+
+    # Make sure we have the correct things...
+    if "service" not in jtd_def.keys():
+        raise ValueError("Top level `service` key required in jtd_to_service spec")
+    if "rpcs" not in jtd_def["service"]:
+        raise ValueError("Missing `rpcs` key required in jtd_def.service")
+
+    method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
+    imports: List[str] = []
+
+    rpc_list = jtd_def["service"]["rpcs"]
+    for rpc_def in rpc_list:
+        if "input" not in rpc_def:
+            raise ValueError("Missing required key `input` in rpc definition")
+        input_descriptor: _descriptor.Descriptor = rpc_def["input"]
+        if not issubclass(type(input_descriptor), _descriptor.Descriptor):
+            raise TypeError("Expected `input` to be type google.protobuf.descriptor.Descriptor")
+
+        if "output" not in rpc_def:
+            raise ValueError("Missing required key `output` in rpc definition")
+        output_descriptor: _descriptor.Descriptor = rpc_def["output"]
+        if not issubclass(type(output_descriptor), _descriptor.Descriptor):
+            raise TypeError("Expected `output` to be type google.protobuf.descriptor.Descriptor")
+
+        if "name" not in rpc_def:
+            raise ValueError("Missing required key `name` in rpc definition")
+
+        method_descriptor_protos.append(descriptor_pb2.MethodDescriptorProto(name=rpc_def["name"],
+                                                                             input_type=input_descriptor.full_name,
+                                                                             output_type=output_descriptor.full_name))
+        imports.append(input_descriptor.file.name)
+        imports.append(output_descriptor.file.name)
+
+    imports = sorted(list(set(imports)))
+
+    service_descriptor_proto = descriptor_pb2.ServiceDescriptorProto(name=name, method=method_descriptor_protos)
+
+    fd_proto = descriptor_pb2.FileDescriptorProto(
+        name=f"{name.lower()}.proto",
+        package=package,
+        syntax="proto3",
+        dependency=imports,
+        # **proto_kwargs,
+        service=[service_descriptor_proto]
+    )
+
+    # Add the FileDescriptorProto to the Descriptor Pool
+    log.debug("Adding Descriptors to DescriptorPool")
+    if descriptor_pool is None:
+        log.debug2("Using default descriptor pool")
+        descriptor_pool = _descriptor_pool.Default()
+    descriptor_pool.Add(fd_proto)
+
+    # Return the descriptor for the top-level message
+    fullname = name if not package else ".".join([package, name])
+
+    _descriptor.ServiceDescriptor
+
+    return descriptor_pool.FindServiceByName(fullname)
 
 
 def jtd_to_proto(
-    name: str,
-    package: str,
-    jtd_def: Dict[str, Union[dict, str]],
-    *,
-    validate_jtd: bool = False,
-    descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+        name: str,
+        package: str,
+        jtd_def: Dict[str, Union[dict, str]],
+        *,
+        validate_jtd: bool = False,
+        descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.Descriptor:
     """Convert a JTD schema into a set of proto DESCRIPTOR objects.
 
@@ -149,11 +248,11 @@ def jtd_to_proto(
 
 
 def _jtd_to_proto_impl(
-    *,
-    jtd_def: Dict[str, Union[dict, str]],
-    name: Optional[str],
-    package: str,
-    imports: List[str],
+        *,
+        jtd_def: Dict[str, Union[dict, str]],
+        name: Optional[str],
+        package: str,
+        imports: List[str],
 ) -> Union[
     descriptor_pb2.DescriptorProto,
     descriptor_pb2.EnumDescriptorProto,
@@ -192,7 +291,7 @@ def _jtd_to_proto_impl(
                 return proto_type_val
 
         assert (
-            proto_type_descriptor is not None
+                proto_type_descriptor is not None
         ), "PROGRAMMING ERROR: proto_type_descriptor not defined"
         type_name = proto_type_descriptor.full_name
         import_file = proto_type_descriptor.file.name
@@ -311,7 +410,7 @@ def _jtd_to_proto_impl(
 
                 # Make all the sub-fields within the oneof
                 for mapping_idx, (mapping_name, mapping_def) in enumerate(
-                    mapping.items()
+                        mapping.items()
                 ):
                     nested_results.append(
                         (
