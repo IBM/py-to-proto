@@ -7,3 +7,4 @@ dist/
 .pytest_cache
 .bash_history
 .python_history
+.idea/
