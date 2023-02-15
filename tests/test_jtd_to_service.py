@@ -4,7 +4,6 @@ Tests for descriptor_to_service
 
 # Local
 from .helpers import temp_dpool
-from jtd_to_proto.descriptor_to_message_class import descriptor_to_message_class
 from jtd_to_proto.jtd_to_proto import jtd_to_proto, jtd_to_service
 
 
@@ -22,8 +21,6 @@ def test_jtd_to_service_descriptor(temp_dpool):
         descriptor_pool=temp_dpool,
     ) # _descriptor.Descriptor
 
-    # message_class = descriptor_to_message_class(message_descriptor)
-
     jtd = {
         "service": {
             "rpcs": [
@@ -36,6 +33,7 @@ def test_jtd_to_service_descriptor(temp_dpool):
         }
     }
 
+    # _descriptor.ServiceDescriptor
     service_descriptor = jtd_to_service(package="foo.bar", name="FooService", jtd_def=jtd, descriptor_pool=temp_dpool)
     # Validate message naming
     assert service_descriptor.name == "FooService"

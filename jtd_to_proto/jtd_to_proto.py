@@ -9,6 +9,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
+from google._upb._message import Descriptor
 import jtd
 
 # First Party
@@ -61,6 +62,7 @@ JTD_TO_PROTO_TYPES = {
 
 ## Interface ###################################################################
 
+# TODO: Move to jtd_to_service file?
 def jtd_to_service(
         name: str,
         package: str,
@@ -113,13 +115,14 @@ def jtd_to_service(
         if "input" not in rpc_def:
             raise ValueError("Missing required key `input` in rpc definition")
         input_descriptor: _descriptor.Descriptor = rpc_def["input"]
-        if not issubclass(type(input_descriptor), _descriptor.Descriptor):
+
+        if not issubclass(type(input_descriptor), _descriptor.Descriptor) and not issubclass(type(input_descriptor), Descriptor):
             raise TypeError("Expected `input` to be type google.protobuf.descriptor.Descriptor")
 
         if "output" not in rpc_def:
             raise ValueError("Missing required key `output` in rpc definition")
         output_descriptor: _descriptor.Descriptor = rpc_def["output"]
-        if not issubclass(type(output_descriptor), _descriptor.Descriptor):
+        if not issubclass(type(output_descriptor), _descriptor.Descriptor) and not issubclass(type(output_descriptor), Descriptor):
             raise TypeError("Expected `output` to be type google.protobuf.descriptor.Descriptor")
 
         if "name" not in rpc_def:
@@ -153,8 +156,6 @@ def jtd_to_service(
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
-
-    _descriptor.ServiceDescriptor
 
     return descriptor_pool.FindServiceByName(fullname)
 
