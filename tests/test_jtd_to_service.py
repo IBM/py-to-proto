@@ -11,7 +11,6 @@ import grpc
 import pytest
 
 # Local
-from .helpers import temp_dpool
 from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.jtd_to_proto import (
     jtd_to_proto,
@@ -22,6 +21,7 @@ from jtd_to_proto.jtd_to_service import (
     service_descriptor_to_client_stub,
     service_descriptor_to_server_registration_function,
 )
+
 
 ## Helpers #####################################################################
 

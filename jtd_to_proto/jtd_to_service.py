@@ -4,7 +4,10 @@ import inspect
 import types
 from typing import Dict, Union, Optional, List, Type, Callable
 
-# Third PArty
+# First Party
+import alog
+
+# Third Party
 import grpc
 import jtd
 from google.protobuf import (
@@ -21,9 +24,6 @@ from google.protobuf.service_reflection import GeneratedServiceType
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
-
-# First Party
-import alog
 
 log = alog.use_channel("JTD2S")
 
