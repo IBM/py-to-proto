@@ -1,15 +1,17 @@
 # Standard
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
 import copy
 import re
+import types
 
 # Third Party
 from google.protobuf import any_pb2
 from google.protobuf import descriptor as _descriptor
-from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor_pb2, service
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
 from google._upb._message import Descriptor
+from google.protobuf.service_reflection import GeneratedServiceType
 import jtd
 
 # First Party
@@ -92,8 +94,8 @@ def jtd_to_service(
             message descriptors
 
     Returns:
-        descriptor:  descriptor.Descriptor
-            The top-level MessageDescriptor corresponding to this jtd definition
+        descriptor:  google.protobuf.descriptor.ServiceDescriptor
+            The ServiceDescriptor corresponding to this jtd definition
     """
     # If performing validation, attempt to parse schema with jtd and throw away
     # the results
@@ -158,6 +160,19 @@ def jtd_to_service(
     fullname = name if not package else ".".join([package, name])
 
     return descriptor_pool.FindServiceByName(fullname)
+
+def service_descriptor_to_service(service_descriptor: _descriptor.ServiceDescriptor) -> Type[GeneratedServiceType]:
+    """Create a service class from a service descriptor
+
+    Args:
+        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
+            ServiceDescriptor to generate service class for
+
+    Returns:
+        Type[GeneratedServiceType]
+    """
+
+    return types.new_class(service_descriptor.name, (service.Service,),  {"metaclass": GeneratedServiceType}, lambda ns: ns.update({"DESCRIPTOR": service_descriptor}))
 
 
 def jtd_to_proto(
