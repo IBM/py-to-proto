@@ -8,6 +8,9 @@ from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
+from jtd_to_proto import descriptor_to_message_class
+from jtd_to_proto.jtd_to_service import jtd_to_service
+
 from .helpers import temp_dpool
 from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 
@@ -700,7 +703,7 @@ def test_jtd_to_proto_default_dpool():
     """This test ensures that without an explicitly passed descriptor pool, the
     default is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
     """
-    jtd_to_proto(
+    foo_descriptor = jtd_to_proto(
         "Foo",
         "foo.bar",
         {
@@ -708,6 +711,26 @@ def test_jtd_to_proto_default_dpool():
                 "foo": {
                     "type": "boolean",
                 },
+            }
+        },
+    )
+
+    # Tacking on a `jtd_to_service` test here as well so that we don't have
+    # two tests each using the default descriptor pool
+    foo_message = descriptor_to_message_class(foo_descriptor)
+
+    jtd_to_service(
+        package="foo.bar",
+        name="FooService",
+        jtd_def={
+            "service": {
+                "rpcs": [
+                    {
+                        "name": "FooPredict",
+                        "input": foo_message,
+                        "output": foo_message,
+                    }
+                ]
             }
         },
     )

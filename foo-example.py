@@ -89,6 +89,7 @@ myservice_instance = FooService()
 print(myservice_instance)
 print(dir(myservice_instance))
 
+
 # Thing that needs to be generated
 class FooStub:
     """Missing associated documentation comment in .proto file."""
@@ -107,6 +108,7 @@ class FooStub:
 
 
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
+
 
 # Thing that needs to be generated
 def add_FooServiceServicer_to_server(servicer, server):
