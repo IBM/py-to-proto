@@ -29,6 +29,7 @@ descriptor = jtd_to_proto.jtd_to_proto(
 print("DESC")
 print(descriptor)
 print(type(descriptor))
+print(dir(descriptor))
 
 message = jtd_to_proto.descriptor_to_message_class(descriptor)
 
@@ -36,6 +37,7 @@ print("\n\n~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
 print("MESSAGE")
 print(message)
 print(type(message))
+print(dir(message))
 print(message.to_proto_file())
 
 print("\n\n~~~~~~~~~~~~~~~~~~~~~~~~\n\n")

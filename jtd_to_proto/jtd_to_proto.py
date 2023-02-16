@@ -1,18 +1,21 @@
 # Standard
+import dataclasses
 from typing import Dict, List, Optional, Tuple, Type, Union
 import copy
 import re
 import types
 
 # Third Party
-from google.protobuf import any_pb2
+from google.protobuf import any_pb2, message
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2, service
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
-from google._upb._message import Descriptor
 from google.protobuf.service_reflection import GeneratedServiceType
 import jtd
+
+# Local
+from jtd_to_proto import descriptor_to_message_class
 
 # First Party
 import alog
@@ -65,6 +68,7 @@ JTD_TO_PROTO_TYPES = {
 ## Interface ###################################################################
 
 # TODO: Move to jtd_to_service file?
+# Yes, and refactor common code
 def jtd_to_service(
     name: str,
     package: str,
@@ -120,9 +124,9 @@ def jtd_to_service(
 
         if not issubclass(
             type(input_descriptor), _descriptor.Descriptor
-        ) and not issubclass(type(input_descriptor), Descriptor):
+        ):
             raise TypeError(
-                "Expected `input` to be type google.protobuf.descriptor.Descriptor"
+                f"Expected `input` to be type google.protobuf.descriptor.Descriptor but got type {type(input_descriptor)}"
             )
 
         if "output" not in rpc_def:
@@ -130,7 +134,7 @@ def jtd_to_service(
         output_descriptor: _descriptor.Descriptor = rpc_def["output"]
         if not issubclass(
             type(output_descriptor), _descriptor.Descriptor
-        ) and not issubclass(type(output_descriptor), Descriptor):
+        ):
             raise TypeError(
                 "Expected `output` to be type google.protobuf.descriptor.Descriptor"
             )
@@ -182,11 +186,12 @@ def service_descriptor_to_service(
     """Create a service class from a service descriptor
 
     Args:
-        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
-            ServiceDescriptor to generate service class for
+        service_descriptor (google.protobuf.descriptor.ServiceDescriptor):
+            The ServiceDescriptor to generate a service interface for
 
     Returns:
-        Type[GeneratedServiceType]
+        Type[GeneratedServiceType]: A new class with metaclass GeneratedServiceType
+        containing the methods from the service_descriptor
     """
 
     return types.new_class(
@@ -195,6 +200,51 @@ def service_descriptor_to_service(
         {"metaclass": GeneratedServiceType},
         lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
     )
+
+
+def service_descriptor_to_client_stub(
+    service_descriptor: _descriptor.ServiceDescriptor
+) -> Type:
+    """Generates a new client stub class from the service descriptor
+    """
+
+    @dataclasses.dataclass
+    class RPCMethod:
+        name: str
+        fullname: str
+        input_message_class: Type[message.Message]
+        output_message_class: Type[message.Message]
+
+    # For each method, need to know input / output message
+    methods: List[RPCMethod] = []
+
+    for method in service_descriptor.methods:
+        method: _descriptor.MethodDescriptor
+
+        input_descriptor: _descriptor.Descriptor = method.input_type
+        output_descriptor: _descriptor.Descriptor = method.input_type
+
+        input_message_class = descriptor_to_message_class(input_descriptor)
+        output_message_class = descriptor_to_message_class(output_descriptor)
+
+        methods.append(RPCMethod(name=method.name, fullname=method.full_name, input_message_class=input_message_class, output_message_class=output_message_class))
+
+    # constructor
+    def initializer(self, channel):
+
+        for method_ in methods:
+            setattr(self, method_.name, channel.unary_unary(
+                method_.fullname,
+                request_serializer=method_.input_message_class.SerializeToString,
+                response_deserializer=method_.output_message_class.FromString,
+            ))
+
+    # creating class dynamically
+    return type(f"{service_descriptor.name}Stub", (object,), {
+        # initializer
+        "__init__": initializer,
+    })
+
 
 
 def jtd_to_proto(
