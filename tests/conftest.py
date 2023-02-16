@@ -4,10 +4,10 @@ Common test helpers
 
 # Standard
 import os
-import pytest
 
 # Third Party
 from google.protobuf import descriptor_pool, struct_pb2, timestamp_pb2
+import pytest
 
 # First Party
 import alog
@@ -19,6 +19,7 @@ alog.configure(
     formatter="json" if os.environ.get("LOG_JSON", "").lower() == "true" else "pretty",
     thread_id=os.environ.get("LOG_THREAD_ID", "").lower() == "true",
 )
+
 
 @pytest.fixture
 def temp_dpool():

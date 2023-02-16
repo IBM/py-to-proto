@@ -1,26 +1,23 @@
 # Standard
+from typing import Callable, Dict, List, Optional, Type, Union
 import dataclasses
 import inspect
 import types
-from typing import Dict, Union, Optional, List, Type, Callable
-
-# First Party
-import alog
 
 # Third Party
-import grpc
-import jtd
-from google.protobuf import (
-    descriptor_pool as _descriptor_pool,
-    descriptor as _descriptor,
-    descriptor_pb2,
-    service,
-    message,
-)
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor_pool as _descriptor_pool
+from google.protobuf import message, service
 from google.protobuf.descriptor import ServiceDescriptor
 from google.protobuf.message import Message
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
+import grpc
+import jtd
+
+# First Party
+import alog
 
 # Local
 from jtd_to_proto import descriptor_to_message_class

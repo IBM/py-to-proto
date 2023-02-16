@@ -3,16 +3,13 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf import any_pb2
 from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
-from jtd_to_proto.jtd_to_service import jtd_to_service
-
-from .conftest import temp_dpool
 from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
+from jtd_to_proto.jtd_to_service import jtd_to_service
 
 ## Happy Path ##################################################################
 

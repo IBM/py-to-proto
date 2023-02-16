@@ -3,8 +3,8 @@ Tests for jtd_to_service functions
 """
 
 # Standard
-import types
 from concurrent import futures
+import types
 
 # Third Party
 import grpc
@@ -12,16 +12,13 @@ import pytest
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
-from jtd_to_proto.jtd_to_proto import (
-    jtd_to_proto,
-)
+from jtd_to_proto.jtd_to_proto import jtd_to_proto
 from jtd_to_proto.jtd_to_service import (
     jtd_to_service,
-    service_descriptor_to_service,
     service_descriptor_to_client_stub,
     service_descriptor_to_server_registration_function,
+    service_descriptor_to_service,
 )
-
 
 ## Helpers #####################################################################
 
