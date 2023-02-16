@@ -28,8 +28,8 @@ def _to_upper_camel(snake_str: str) -> str:
     if not snake_str:
         return snake_str
     return (
-            snake_str[0].upper()
-            + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
+        snake_str[0].upper()
+        + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
     )
 
 
@@ -66,12 +66,12 @@ JTD_TO_PROTO_TYPES = {
 
 # TODO: Move to jtd_to_service file?
 def jtd_to_service(
-        name: str,
-        package: str,
-        jtd_def: Dict[str, Union[dict, str]],
-        *,
-        validate_jtd: bool = False,
-        descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+    name: str,
+    package: str,
+    jtd_def: Dict[str, Union[dict, str]],
+    *,
+    validate_jtd: bool = False,
+    descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.ServiceDescriptor:
     """Convert a JTD schema into a set of proto DESCRIPTOR objects.
     Operates on service definitions.
@@ -118,27 +118,41 @@ def jtd_to_service(
             raise ValueError("Missing required key `input` in rpc definition")
         input_descriptor: _descriptor.Descriptor = rpc_def["input"]
 
-        if not issubclass(type(input_descriptor), _descriptor.Descriptor) and not issubclass(type(input_descriptor), Descriptor):
-            raise TypeError("Expected `input` to be type google.protobuf.descriptor.Descriptor")
+        if not issubclass(
+            type(input_descriptor), _descriptor.Descriptor
+        ) and not issubclass(type(input_descriptor), Descriptor):
+            raise TypeError(
+                "Expected `input` to be type google.protobuf.descriptor.Descriptor"
+            )
 
         if "output" not in rpc_def:
             raise ValueError("Missing required key `output` in rpc definition")
         output_descriptor: _descriptor.Descriptor = rpc_def["output"]
-        if not issubclass(type(output_descriptor), _descriptor.Descriptor) and not issubclass(type(output_descriptor), Descriptor):
-            raise TypeError("Expected `output` to be type google.protobuf.descriptor.Descriptor")
+        if not issubclass(
+            type(output_descriptor), _descriptor.Descriptor
+        ) and not issubclass(type(output_descriptor), Descriptor):
+            raise TypeError(
+                "Expected `output` to be type google.protobuf.descriptor.Descriptor"
+            )
 
         if "name" not in rpc_def:
             raise ValueError("Missing required key `name` in rpc definition")
 
-        method_descriptor_protos.append(descriptor_pb2.MethodDescriptorProto(name=rpc_def["name"],
-                                                                             input_type=input_descriptor.full_name,
-                                                                             output_type=output_descriptor.full_name))
+        method_descriptor_protos.append(
+            descriptor_pb2.MethodDescriptorProto(
+                name=rpc_def["name"],
+                input_type=input_descriptor.full_name,
+                output_type=output_descriptor.full_name,
+            )
+        )
         imports.append(input_descriptor.file.name)
         imports.append(output_descriptor.file.name)
 
     imports = sorted(list(set(imports)))
 
-    service_descriptor_proto = descriptor_pb2.ServiceDescriptorProto(name=name, method=method_descriptor_protos)
+    service_descriptor_proto = descriptor_pb2.ServiceDescriptorProto(
+        name=name, method=method_descriptor_protos
+    )
 
     fd_proto = descriptor_pb2.FileDescriptorProto(
         name=f"{name.lower()}.proto",
@@ -146,7 +160,7 @@ def jtd_to_service(
         syntax="proto3",
         dependency=imports,
         # **proto_kwargs,
-        service=[service_descriptor_proto]
+        service=[service_descriptor_proto],
     )
 
     # Add the FileDescriptorProto to the Descriptor Pool
@@ -161,7 +175,10 @@ def jtd_to_service(
 
     return descriptor_pool.FindServiceByName(fullname)
 
-def service_descriptor_to_service(service_descriptor: _descriptor.ServiceDescriptor) -> Type[GeneratedServiceType]:
+
+def service_descriptor_to_service(
+    service_descriptor: _descriptor.ServiceDescriptor,
+) -> Type[GeneratedServiceType]:
     """Create a service class from a service descriptor
 
     Args:
@@ -172,16 +189,21 @@ def service_descriptor_to_service(service_descriptor: _descriptor.ServiceDescrip
         Type[GeneratedServiceType]
     """
 
-    return types.new_class(service_descriptor.name, (service.Service,),  {"metaclass": GeneratedServiceType}, lambda ns: ns.update({"DESCRIPTOR": service_descriptor}))
+    return types.new_class(
+        service_descriptor.name,
+        (service.Service,),
+        {"metaclass": GeneratedServiceType},
+        lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
+    )
 
 
 def jtd_to_proto(
-        name: str,
-        package: str,
-        jtd_def: Dict[str, Union[dict, str]],
-        *,
-        validate_jtd: bool = False,
-        descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+    name: str,
+    package: str,
+    jtd_def: Dict[str, Union[dict, str]],
+    *,
+    validate_jtd: bool = False,
+    descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.Descriptor:
     """Convert a JTD schema into a set of proto DESCRIPTOR objects.
 
@@ -264,11 +286,11 @@ def jtd_to_proto(
 
 
 def _jtd_to_proto_impl(
-        *,
-        jtd_def: Dict[str, Union[dict, str]],
-        name: Optional[str],
-        package: str,
-        imports: List[str],
+    *,
+    jtd_def: Dict[str, Union[dict, str]],
+    name: Optional[str],
+    package: str,
+    imports: List[str],
 ) -> Union[
     descriptor_pb2.DescriptorProto,
     descriptor_pb2.EnumDescriptorProto,
@@ -307,7 +329,7 @@ def _jtd_to_proto_impl(
                 return proto_type_val
 
         assert (
-                proto_type_descriptor is not None
+            proto_type_descriptor is not None
         ), "PROGRAMMING ERROR: proto_type_descriptor not defined"
         type_name = proto_type_descriptor.full_name
         import_file = proto_type_descriptor.file.name
@@ -426,7 +448,7 @@ def _jtd_to_proto_impl(
 
                 # Make all the sub-fields within the oneof
                 for mapping_idx, (mapping_name, mapping_def) in enumerate(
-                        mapping.items()
+                    mapping.items()
                 ):
                     nested_results.append(
                         (

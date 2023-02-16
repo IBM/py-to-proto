@@ -6,6 +6,7 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 import grpc
 
 import alog
+
 alog.configure(default_level="debug4")
 
 import jtd_to_proto
@@ -22,7 +23,7 @@ message_descriptor = jtd_to_proto.jtd_to_proto(
             },
         }
     },
-    descriptor_pool=pool
+    descriptor_pool=pool,
 )
 
 print("DESC")
@@ -38,24 +39,27 @@ print(type(message_class))
 print(message_class.to_proto_file())
 
 
-
 print("\n\n~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
 print("SERVICE!")
-method_descriptor_proto = descriptor_pb2.MethodDescriptorProto(name="FooPredict", input_type="foo.bar.Foo", output_type="foo.bar.Foo")
-service_proto_descriptor = descriptor_pb2.ServiceDescriptorProto(name="FooService", method=[method_descriptor_proto])
+method_descriptor_proto = descriptor_pb2.MethodDescriptorProto(
+    name="FooPredict", input_type="foo.bar.Foo", output_type="foo.bar.Foo"
+)
+service_proto_descriptor = descriptor_pb2.ServiceDescriptorProto(
+    name="FooService", method=[method_descriptor_proto]
+)
 
 
 print("service_proto_descriptor: ", service_proto_descriptor)
 print("service_proto_descriptor type: ", type(service_proto_descriptor))
 
 fd_proto = descriptor_pb2.FileDescriptorProto(
-        name="fooservice.proto",
-        package="foo.bar",
-        syntax="proto3",
-        dependency=["foo.proto"],
-        #**proto_kwargs,
-        service=[service_proto_descriptor]
-    )
+    name="fooservice.proto",
+    package="foo.bar",
+    syntax="proto3",
+    dependency=["foo.proto"],
+    # **proto_kwargs,
+    service=[service_proto_descriptor],
+)
 
 print("fd_proto:", fd_proto)
 print(type(fd_proto))
@@ -68,8 +72,11 @@ print(type(some_service_desc))
 
 
 # Thing that needs to be generated
-class FooService(service.Service, metaclass=google.protobuf.service_reflection.GeneratedServiceType):
-    DESCRIPTOR=some_service_desc
+class FooService(
+    service.Service, metaclass=google.protobuf.service_reflection.GeneratedServiceType
+):
+    DESCRIPTOR = some_service_desc
+
 
 # Impl for demo
 class FooImpl(FooService):
@@ -93,28 +100,27 @@ class FooStub:
             channel: A grpc.Channel.
         """
         self.FooPredict = channel.unary_unary(
-                '/foo.bar.FooService/FooPredict',
-                request_serializer=message_class.SerializeToString,
-                response_deserializer=message_class.FromString,
-                )
+            "/foo.bar.FooService/FooPredict",
+            request_serializer=message_class.SerializeToString,
+            response_deserializer=message_class.FromString,
+        )
 
-server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=50)
-    )
+
+server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
 
 # Thing that needs to be generated
 def add_FooServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'FooPredict': grpc.unary_unary_rpc_method_handler(
-                    servicer.FooPredict,
-                    request_deserializer=message_class.FromString,
-                    response_serializer=message_class.SerializeToString,
-            ),
+        "FooPredict": grpc.unary_unary_rpc_method_handler(
+            servicer.FooPredict,
+            request_deserializer=message_class.FromString,
+            response_serializer=message_class.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'foo.bar.FooService', rpc_method_handlers)
+        "foo.bar.FooService", rpc_method_handlers
+    )
     server.add_generic_rpc_handlers((generic_handler,))
-
 
 
 add_FooServiceServicer_to_server(FooImpl(), server)
