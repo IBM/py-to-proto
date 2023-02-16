@@ -11,7 +11,7 @@ from google.protobuf import message
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 # Local
-from .helpers import temp_dpool
+from .conftest import temp_dpool
 from jtd_to_proto.descriptor_to_message_class import descriptor_to_message_class
 from jtd_to_proto.jtd_to_proto import jtd_to_proto
 

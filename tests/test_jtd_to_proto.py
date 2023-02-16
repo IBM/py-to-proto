@@ -11,7 +11,7 @@ import pytest
 from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.jtd_to_service import jtd_to_service
 
-from .helpers import temp_dpool
+from .conftest import temp_dpool
 from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 
 ## Happy Path ##################################################################
