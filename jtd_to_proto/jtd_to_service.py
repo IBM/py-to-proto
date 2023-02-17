@@ -64,27 +64,31 @@ def jtd_to_service(
         jtd.schema.Schema.from_dict(jtd_def)
 
     # Make sure we have the correct things...
-    if "service" not in jtd_def.keys():
+    service_def = jtd_def.get("service")
+    if service_def is None:
         raise ValueError("Top level `service` key required in jtd_to_service spec")
-    if "rpcs" not in jtd_def["service"]:
+
+    rpcs_def = service_def.get("rpcs")
+    if rpcs_def is None:
         raise ValueError("Missing `rpcs` key required in jtd_def.service")
 
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
 
-    rpc_list = jtd_def["service"]["rpcs"]
-    for rpc_def in rpc_list:
-        if "input" not in rpc_def:
+    for rpc_def in rpcs_def:
+        rpc_input = rpc_def.get("input")
+        if rpc_input is None:
             raise ValueError("Missing required key `input` in rpc definition")
-        input_message: Message = rpc_def["input"]
+        input_message: Message = rpc_input
         if not (inspect.isclass(input_message) and issubclass(input_message, Message)):
             raise TypeError(
                 f"Expected `input` to be type google.protobuf.message.Message but got type {type(input_message)}"
             )
 
-        if "output" not in rpc_def:
+        rpc_output = rpc_def.get("output")
+        if rpc_output is None:
             raise ValueError("Missing required key `output` in rpc definition")
-        output_message: Message = rpc_def["output"]
+        output_message: Message = rpc_output
         if not (
             inspect.isclass(output_message) and issubclass(output_message, Message)
         ):
@@ -92,12 +96,13 @@ def jtd_to_service(
                 f"Expected `output` to be type google.protobuf.message.Message but got type {type(output_message)}"
             )
 
-        if "name" not in rpc_def:
+        rpc_name = rpc_def.get("name")
+        if rpc_name is None:
             raise ValueError("Missing required key `name` in rpc definition")
 
         method_descriptor_protos.append(
             descriptor_pb2.MethodDescriptorProto(
-                name=rpc_def["name"],
+                name=rpc_name,
                 input_type=input_message.DESCRIPTOR.full_name,
                 output_type=output_message.DESCRIPTOR.full_name,
             )
