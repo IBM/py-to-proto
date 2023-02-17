@@ -139,12 +139,13 @@ def service_descriptor_to_service(
     """Create a service class from a service descriptor
 
     Args:
-        service_descriptor (google.protobuf.descriptor.ServiceDescriptor):
+        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor to generate a service interface for
 
     Returns:
-        Type[GeneratedServiceType]: A new class with metaclass GeneratedServiceType
-        containing the methods from the service_descriptor
+        Type[GeneratedServiceType]
+            A new class with metaclass GeneratedServiceType containing the methods
+            from the service_descriptor
     """
 
     return types.new_class(
@@ -166,9 +167,9 @@ def service_descriptor_to_client_stub(
     """
     methods = _get_rpc_methods(service_descriptor)
 
-    # initializer
+    # Initializer
     def initializer(self, channel):
-        """Client stub initializer"""
+        """Initializes a client stub with the service descriptor name"""
         for method in methods:
             setattr(
                 self,
@@ -180,7 +181,7 @@ def service_descriptor_to_client_stub(
                 ),
             )
 
-    # creating class dynamically
+    # Creating class dynamically
     return type(
         f"{service_descriptor.name}Stub",
         (object,),
@@ -196,11 +197,11 @@ def service_descriptor_to_server_registration_function(
     """Generates a server registration function from the service descriptor
 
     Args:
-        service_descriptor (google.protobuf.descriptor.ServiceDescriptor):
+        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor to generate a service interface for
 
     Returns:
-        function: Server registration function to add service handlers to a server
+        function:  Server registration function to add service handlers to a server
     """
     methods = _get_rpc_methods(service_descriptor)
 
@@ -234,7 +235,7 @@ def _get_rpc_methods(service_descriptor: ServiceDescriptor) -> List[_RPCMethod]:
     """Get list of RPC methods from a service descriptor
 
     Args:
-        service_descriptor (google.protobuf.descriptor.ServiceDescriptor):
+        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor to get RPC methods for
 
     Returns:
