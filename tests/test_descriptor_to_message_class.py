@@ -144,3 +144,30 @@ def test_descriptor_to_message_class_top_level_enum(temp_dpool):
     with tempfile.TemporaryDirectory() as workdir:
         top.write_proto_file(workdir)
         assert os.listdir(workdir) == [top.DESCRIPTOR.file.name]
+
+
+def test_multiple_invocations_of_descriptor_to_message(temp_dpool):
+    """Ensure that invoking descriptor_to_message_class with the same descriptor
+    returns the same instance of a class.
+    """
+    descriptor = jtd_to_proto(
+        "Foo",
+        "foo.bar",
+        {
+            "properties": {
+                "foo": {"type": "boolean"},
+                "bar": {"type": "float32"},
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    Foo = descriptor_to_message_class(descriptor)
+    foo = Foo(foo=True, bar=1.234)
+
+    Bar = descriptor_to_message_class(descriptor)
+    bar = Bar(foo=True, bar=1.234)
+
+    assert Foo is Bar
+    assert Foo == Bar
+    assert id(Foo) == id(Bar)
+    assert foo == bar
