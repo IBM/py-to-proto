@@ -22,19 +22,37 @@ import alog
 # Local
 from jtd_to_proto import descriptor_to_message_class
 
-log = alog.use_channel("JTD2S")
+log = alog.use_channel("JSON2S")
+
+SERVICE_JTD_SCHEMA = jtd.Schema.from_dict(
+    {
+        "properties": {
+            "service": {
+                "properties": {
+                    "rpcs": {
+                        "elements": {
+                            "properties": {
+                                "input_type": {"type": "string"},
+                                "name": {"type": "string"},
+                                "output_type": {"type": "string"},
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
 
 
-def jtd_to_service(
+def json_to_service(
     name: str,
     package: str,
-    jtd_def: Dict[str, Union[dict, str]],
+    json_service_def: Dict[str, Union[dict, str]],
     *,
-    validate_jtd: bool = False,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.ServiceDescriptor:
-    """Convert a JTD schema into a set of proto DESCRIPTOR objects.
-    Operates on service definitions.
+    """Convert a JSON representation of an RPC service into a ServiceDescriptor.
 
     Reference: https://jsontypedef.com/docs/jtd-in-5-minutes/
 
@@ -43,72 +61,47 @@ def jtd_to_service(
             The name for the top-level service object
         package:  str
             The proto package name to use for this service
-        jtd_def:  Dict[str, Union[dict, str]]
-            The full JTD schema dict
+        json_service_def:  Dict[str, Union[dict, str]]
+            A JSON dict describing a service that matches the SERVICE_JTD_SCHEMA
 
     Kwargs:
-        validate_jtd:  bool
-            Whether or not to validate the JTD schema
         descriptor_pool:  Optional[descriptor_pool.DescriptorPool]
             If given, this DescriptorPool will be used to aggregate the set of
             message descriptors
 
     Returns:
         descriptor:  google.protobuf.descriptor.ServiceDescriptor
-            The ServiceDescriptor corresponding to this jtd definition
+            The ServiceDescriptor corresponding to this json definition
     """
-    # If performing validation, attempt to parse schema with jtd and throw away
-    # the results
-    if validate_jtd:
-        log.debug2("Validating JTD")
-        jtd.schema.Schema.from_dict(jtd_def)
-
-    # Make sure we have the correct things...
-    service_def = jtd_def.get("service")
-    if service_def is None:
-        raise ValueError("Top level `service` key required in jtd_to_service spec")
-
-    rpcs_def = service_def.get("rpcs")
-    if rpcs_def is None:
-        raise ValueError("Missing `rpcs` key required in jtd_def.service")
+    # Ensure we have a valid service spec
+    log.debug2("Validating service json")
+    jtd.validate(schema=SERVICE_JTD_SCHEMA, instance=json_service_def)
 
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
 
+    if descriptor_pool is None:
+        log.debug2("Using default descriptor pool")
+        descriptor_pool = _descriptor_pool.Default()
+
+    json_service = json_service_def.get("service")
+    rpcs_def = json_service.get("rpcs")
     for rpc_def in rpcs_def:
-        rpc_input = rpc_def.get("input")
-        if rpc_input is None:
-            raise ValueError("Missing required key `input` in rpc definition")
-        input_message: Message = rpc_input
-        if not (inspect.isclass(input_message) and issubclass(input_message, Message)):
-            raise TypeError(
-                f"Expected `input` to be type google.protobuf.message.Message but got type {type(input_message)}"
-            )
+        rpc_input_type = rpc_def.get("input_type")
+        input_descriptor = descriptor_pool.FindMessageTypeByName(rpc_input_type)
 
-        rpc_output = rpc_def.get("output")
-        if rpc_output is None:
-            raise ValueError("Missing required key `output` in rpc definition")
-        output_message: Message = rpc_output
-        if not (
-            inspect.isclass(output_message) and issubclass(output_message, Message)
-        ):
-            raise TypeError(
-                f"Expected `output` to be type google.protobuf.message.Message but got type {type(output_message)}"
-            )
-
-        rpc_name = rpc_def.get("name")
-        if rpc_name is None:
-            raise ValueError("Missing required key `name` in rpc definition")
+        rpc_output_type = rpc_def.get("output_type")
+        output_descriptor = descriptor_pool.FindMessageTypeByName(rpc_output_type)
 
         method_descriptor_protos.append(
             descriptor_pb2.MethodDescriptorProto(
-                name=rpc_name,
-                input_type=input_message.DESCRIPTOR.full_name,
-                output_type=output_message.DESCRIPTOR.full_name,
+                name=rpc_def.get("name"),
+                input_type=input_descriptor.full_name,
+                output_type=output_descriptor.full_name,
             )
         )
-        imports.append(input_message.DESCRIPTOR.file.name)
-        imports.append(output_message.DESCRIPTOR.file.name)
+        imports.append(input_descriptor.file.name)
+        imports.append(output_descriptor.file.name)
 
     imports = sorted(list(set(imports)))
 
@@ -127,9 +120,6 @@ def jtd_to_service(
 
     # Add the FileDescriptorProto to the Descriptor Pool
     log.debug("Adding Descriptors to DescriptorPool")
-    if descriptor_pool is None:
-        log.debug2("Using default descriptor pool")
-        descriptor_pool = _descriptor_pool.Default()
     descriptor_pool.Add(fd_proto)
 
     # Return the descriptor for the top-level message

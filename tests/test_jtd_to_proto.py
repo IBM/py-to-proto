@@ -9,7 +9,7 @@ import pytest
 # Local
 from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
-from jtd_to_proto.jtd_to_service import jtd_to_service
+from jtd_to_proto.json_to_service import json_to_service
 
 ## Happy Path ##################################################################
 
@@ -700,7 +700,7 @@ def test_jtd_to_proto_default_dpool():
     """This test ensures that without an explicitly passed descriptor pool, the
     default is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
     """
-    foo_descriptor = jtd_to_proto(
+    _ = jtd_to_proto(
         "Foo",
         "foo.bar",
         {
@@ -714,18 +714,16 @@ def test_jtd_to_proto_default_dpool():
 
     # Tacking on a `jtd_to_service` test here as well so that we don't have
     # two tests each using the default descriptor pool
-    foo_message = descriptor_to_message_class(foo_descriptor)
-
-    jtd_to_service(
+    json_to_service(
         package="foo.bar",
         name="FooService",
-        jtd_def={
+        json_service_def={
             "service": {
                 "rpcs": [
                     {
                         "name": "FooPredict",
-                        "input": foo_message,
-                        "output": foo_message,
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
                     }
                 ]
             }

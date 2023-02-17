@@ -1,5 +1,5 @@
 """
-Tests for jtd_to_service functions
+Tests for json_to_service functions
 """
 
 # Standard
@@ -13,8 +13,8 @@ import pytest
 # Local
 from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.jtd_to_proto import jtd_to_proto
-from jtd_to_proto.jtd_to_service import (
-    jtd_to_service,
+from jtd_to_proto.json_to_service import (
+    json_to_service,
     service_descriptor_to_client_stub,
     service_descriptor_to_server_registration_function,
     service_descriptor_to_service,
@@ -45,179 +45,75 @@ def foo_message(temp_dpool):
 @pytest.fixture
 def foo_service_descriptor(temp_dpool, foo_message):
     """Service descriptor fixture"""
-    jtd = {
+    # foo_message needs to have been defined for these input/output message to be valid
+    service_json = {
         "service": {
             "rpcs": [
                 {
                     "name": "FooPredict",
-                    "input": foo_message,
-                    "output": foo_message,
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Foo",
                 }
             ]
         }
     }
-    return jtd_to_service(
-        package="foo.bar", name="FooService", jtd_def=jtd, descriptor_pool=temp_dpool
+    return json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
     )
 
 
 ## Tests #######################################################################
 
 
-def test_jtd_to_service_descriptor(temp_dpool, foo_message):
-    """Ensure that JTD can be converted to service descriptor"""
+def test_json_to_service_descriptor(temp_dpool, foo_message):
+    """Ensure that json can be converted to service descriptor"""
 
     # Note: This is a repeat of foo_service_descriptor fixture but
     # parts of that could change
-    jtd = {
+    service_json = {
         "service": {
             "rpcs": [
                 {
                     "name": "FooPredict",
-                    "input": foo_message,
-                    "output": foo_message,
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Foo",
                 }
             ]
         }
     }
     # _descriptor.ServiceDescriptor
-    service_descriptor = jtd_to_service(
-        package="foo.bar", name="FooService", jtd_def=jtd, descriptor_pool=temp_dpool
+    service_descriptor = json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
     )
     # Validate message naming
     assert service_descriptor.name == "FooService"
     assert len(service_descriptor.methods) == 1
 
 
-def test_jtd_to_service_descriptor_no_service(temp_dpool):
-    """Make sure that an error is raised if top-level `service` key missing"""
-    jtd = {
-        "rpcs": [
-            {
-                "name": "FooPredict",
-                "input": foo_message,
-                "output": foo_message,
-            }
-        ]
-    }
-    with pytest.raises(ValueError):
-        jtd_to_service(
-            package="foo.bar",
-            name="FooService",
-            jtd_def=jtd,
-            descriptor_pool=temp_dpool,
-        )
-
-
-def test_jtd_to_service_descriptor_no_rpcs(temp_dpool):
-    """Make sure that an error is raised if `rpcs` key missing"""
-    jtd = {
-        "service": {
-            "name": "FooPredict",
-            "input": foo_message,
-            "output": foo_message,
-        }
-    }
-    with pytest.raises(ValueError):
-        jtd_to_service(
-            package="foo.bar",
-            name="FooService",
-            jtd_def=jtd,
-            descriptor_pool=temp_dpool,
-        )
-
-
-def test_jtd_to_service_descriptor_no_rpc_name(temp_dpool, foo_message):
-    """Make sure that an error is raised if rpc does not have a name"""
-    jtd = {
-        "service": {
-            "rpcs": [
-                {
-                    "input": foo_message,
-                    "output": foo_message,
-                }
-            ]
-        }
-    }
-    with pytest.raises(ValueError):
-        jtd_to_service(
-            package="foo.bar",
-            name="FooService",
-            jtd_def=jtd,
-            descriptor_pool=temp_dpool,
-        )
-
-
-def test_jtd_to_service_no_input(temp_dpool, foo_message):
-    """Make sure that an error is raised if rpc does not have a name"""
-    jtd = {
+def test_json_to_service_input_validation(temp_dpool, foo_message):
+    """Make sure that an error is raised if the service definition is invalid"""
+    # This def is missing the `input_type` field
+    service_json = {
         "service": {
             "rpcs": [
                 {
                     "name": "FooPredict",
-                    "output": foo_message,
+                    "output_type": "foo.bar.Foo",
                 }
             ]
         }
     }
-    with pytest.raises(ValueError):
-        jtd_to_service(
-            package="foo.bar",
-            name="FooService",
-            jtd_def=jtd,
-            descriptor_pool=temp_dpool,
-        )
-
-
-def test_jtd_to_service_no_output(temp_dpool, foo_message):
-    """Make sure that an error is raised if rpc does not have a name"""
-    jtd = {
-        "service": {
-            "rpcs": [
-                {
-                    "name": "FooPredict",
-                    "input": foo_message,
-                }
-            ]
-        }
-    }
-    with pytest.raises(ValueError):
-        jtd_to_service(
-            package="foo.bar",
-            name="FooService",
-            jtd_def=jtd,
-            descriptor_pool=temp_dpool,
-        )
-
-
-def test_jtd_to_service_wrong_input_type(temp_dpool, foo_message):
-    """Make sure that an error is raised if rpc does not have a name"""
-    jtd = {
-        "service": {
-            "rpcs": [{"name": "FooPredict", "input": "foo", "output": foo_message}]
-        }
-    }
     with pytest.raises(TypeError):
-        jtd_to_service(
+        json_to_service(
             package="foo.bar",
             name="FooService",
-            jtd_def=jtd,
-            descriptor_pool=temp_dpool,
-        )
-
-
-def test_jtd_to_service_wrong_output_type(temp_dpool, foo_message):
-    """Make sure that an error is raised if rpc does not have a name"""
-    jtd = {
-        "service": {
-            "rpcs": [{"name": "FooPredict", "input": foo_message, "output": "foo"}]
-        }
-    }
-    with pytest.raises(TypeError):
-        jtd_to_service(
-            package="foo.bar",
-            name="FooService",
-            jtd_def=jtd,
+            json_service_def=service_json,
             descriptor_pool=temp_dpool,
         )
 
@@ -289,9 +185,3 @@ def test_end_to_end_integration(foo_message, foo_service_descriptor):
     assert response.bar == 42.0
 
     server.stop(grace=0)
-
-
-def test_jtd_to_service_validation():
-    """Check that we can use the validate_jtd flag"""
-    with pytest.raises(AttributeError):
-        jtd_to_service("Foo", "foo.bar", {"foo": "bar"}, validate_jtd=True)
