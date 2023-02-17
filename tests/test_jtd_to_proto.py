@@ -8,8 +8,8 @@ import pytest
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
-from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 from jtd_to_proto.json_to_service import json_to_service
+from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 
 ## Happy Path ##################################################################
 

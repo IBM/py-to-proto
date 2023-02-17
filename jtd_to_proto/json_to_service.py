@@ -164,7 +164,7 @@ def service_descriptor_to_client_stub(
 
     # Initializer
     def initializer(self, channel):
-        """Initializes a client stub with the service descriptor name"""
+        f"""Initializes a client stub with for the {service_descriptor.name} Service"""
         for method in methods:
             setattr(
                 self,
