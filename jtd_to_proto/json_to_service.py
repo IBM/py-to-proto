@@ -1,5 +1,5 @@
 # Standard
-from typing import Callable, Dict, List, Optional, Type, Union
+from typing import Callable, Dict, List, Optional, Type
 import dataclasses
 import types
 
@@ -42,11 +42,14 @@ SERVICE_JTD_SCHEMA = jtd.Schema.from_dict(
     }
 )
 
+# Python type hint equivalent of jtd service schema
+ServiceJsonType = Dict[str, Dict[str, List[Dict[str, str]]]]
+
 
 def json_to_service(
     name: str,
     package: str,
-    json_service_def: Dict[str, Union[dict, str]],
+    json_service_def: ServiceJsonType,
     *,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.ServiceDescriptor:
@@ -88,18 +91,18 @@ def json_to_service(
         log.debug2("Using default descriptor pool")
         descriptor_pool = _descriptor_pool.Default()
 
-    json_service = json_service_def.get("service")
-    rpcs_def = json_service.get("rpcs")
+    json_service = json_service_def["service"]
+    rpcs_def = json_service["rpcs"]
     for rpc_def in rpcs_def:
-        rpc_input_type = rpc_def.get("input_type")
+        rpc_input_type = rpc_def["input_type"]
         input_descriptor = descriptor_pool.FindMessageTypeByName(rpc_input_type)
 
-        rpc_output_type = rpc_def.get("output_type")
+        rpc_output_type = rpc_def["output_type"]
         output_descriptor = descriptor_pool.FindMessageTypeByName(rpc_output_type)
 
         method_descriptor_protos.append(
             descriptor_pb2.MethodDescriptorProto(
-                name=rpc_def.get("name"),
+                name=rpc_def["name"],
                 input_type=input_descriptor.full_name,
                 output_type=output_descriptor.full_name,
             )
@@ -134,7 +137,7 @@ def json_to_service(
 
 def service_descriptor_to_service(
     service_descriptor: _descriptor.ServiceDescriptor,
-) -> Type[GeneratedServiceType]:
+) -> Type[service.Service]:
     """Create a service class from a service descriptor
 
     Args:
