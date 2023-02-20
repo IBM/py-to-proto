@@ -145,11 +145,10 @@ def service_descriptor_to_service(
             The ServiceDescriptor to generate a service interface for
 
     Returns:
-        Type[GeneratedServiceType]
-            A new class with metaclass GeneratedServiceType containing the methods
+        Type[google.protobuf.service.Service]
+            A new class with metaclass google.protobuf.service_reflection.GeneratedServiceType containing the methods
             from the service_descriptor
     """
-
     return types.new_class(
         service_descriptor.name,
         (service.Service,),
@@ -195,7 +194,7 @@ def service_descriptor_to_client_stub(
 
 def service_descriptor_to_server_registration_function(
     service_descriptor: _descriptor.ServiceDescriptor,
-) -> Callable[[Type[Service], grpc.Server], None]:
+) -> Callable[[Service, grpc.Server], None]:
     """Generates a server registration function from the service descriptor
 
     Args:
@@ -207,7 +206,7 @@ def service_descriptor_to_server_registration_function(
     """
     methods = _get_rpc_methods(service_descriptor)
 
-    def registration_function(servicer: Type[Service], server: grpc.Server):
+    def registration_function(servicer: Service, server: grpc.Server):
         """Server registration function"""
         rpc_method_handlers = {
             method.name: grpc.unary_unary_rpc_method_handler(

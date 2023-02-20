@@ -141,7 +141,7 @@ def test_service_descriptor_to_registration_function(foo_service_descriptor):
     registration_fn = service_descriptor_to_server_registration_function(
         foo_service_descriptor
     )
-    assert type(registration_fn) == types.FunctionType
+    assert isinstance(registration_fn, types.FunctionType)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     service_class = service_descriptor_to_service(foo_service_descriptor)
