@@ -1,7 +1,6 @@
 # Standard
 from typing import Callable, Dict, List, Optional, Type, Union
 import dataclasses
-import inspect
 import types
 
 # Third Party
@@ -10,7 +9,6 @@ from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message, service
 from google.protobuf.descriptor import ServiceDescriptor
-from google.protobuf.message import Message
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
 import grpc
@@ -75,12 +73,13 @@ def json_to_service(
     """
     # Ensure we have a valid service spec
     log.debug2("Validating service json")
-    validation_errors = jtd.validate(schema=SERVICE_JTD_SCHEMA, instance=json_service_def)
+    validation_errors: List[jtd.ValidationError] = jtd.validate(
+        schema=SERVICE_JTD_SCHEMA, instance=json_service_def
+    )
     if validation_errors:
-        #for validation_error in validation_errors:
-            log.error()
-        # raise ValueError("{}")
-
+        for validation_error in validation_errors:
+            log.error("Service JSON validation error: %s", validation_error)
+        raise ValueError("Invalid service json")
 
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
