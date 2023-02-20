@@ -700,7 +700,7 @@ def test_jtd_to_proto_default_dpool():
     """This test ensures that without an explicitly passed descriptor pool, the
     default is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
     """
-    _ = jtd_to_proto(
+    jtd_to_proto(
         "Foo",
         "foo.bar",
         {

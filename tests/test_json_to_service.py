@@ -25,7 +25,7 @@ from jtd_to_proto.jtd_to_proto import jtd_to_proto
 
 @pytest.fixture
 def foo_message(temp_dpool):
-    """Message fixture"""
+    """Message foo fixture"""
     # google.protobuf.message.Message
     return descriptor_to_message_class(
         jtd_to_proto(
@@ -35,6 +35,25 @@ def foo_message(temp_dpool):
                 "properties": {
                     "foo": {"type": "boolean"},
                     "bar": {"type": "float32"},
+                }
+            },
+            descriptor_pool=temp_dpool,
+        )
+    )
+
+
+@pytest.fixture
+def bar_message(temp_dpool):
+    """Message bar fixture"""
+    # google.protobuf.message.Message
+    return descriptor_to_message_class(
+        jtd_to_proto(
+            "Bar",
+            "foo.bar",
+            {
+                "properties": {
+                    "boo": {"type": "int32"},
+                    "baz": {"type": "boolean"},
                 }
             },
             descriptor_pool=temp_dpool,
@@ -68,19 +87,22 @@ def foo_service_descriptor(temp_dpool, foo_message):
 ## Tests #######################################################################
 
 
-def test_json_to_service_descriptor(temp_dpool, foo_message):
+def test_json_to_service_descriptor(temp_dpool, foo_message, bar_message):
     """Ensure that json can be converted to service descriptor"""
 
-    # Note: This is a repeat of foo_service_descriptor fixture but
-    # parts of that could change
     service_json = {
         "service": {
             "rpcs": [
                 {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
+                },
+                {
                     "name": "FooPredict",
                     "input_type": "foo.bar.Foo",
                     "output_type": "foo.bar.Foo",
-                }
+                },
             ]
         }
     }
@@ -93,7 +115,7 @@ def test_json_to_service_descriptor(temp_dpool, foo_message):
     )
     # Validate message naming
     assert service_descriptor.name == "FooService"
-    assert len(service_descriptor.methods) == 1
+    assert len(service_descriptor.methods) == 2
 
 
 def test_json_to_service_input_validation(temp_dpool, foo_message):
