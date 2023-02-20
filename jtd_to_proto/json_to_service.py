@@ -75,7 +75,12 @@ def json_to_service(
     """
     # Ensure we have a valid service spec
     log.debug2("Validating service json")
-    jtd.validate(schema=SERVICE_JTD_SCHEMA, instance=json_service_def)
+    validation_errors = jtd.validate(schema=SERVICE_JTD_SCHEMA, instance=json_service_def)
+    if validation_errors:
+        #for validation_error in validation_errors:
+            log.error()
+        # raise ValueError("{}")
+
 
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
