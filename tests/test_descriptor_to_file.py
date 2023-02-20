@@ -21,7 +21,7 @@ import pytest
 import alog
 
 # Local
-from .helpers import temp_dpool
+from .conftest import temp_dpool
 from jtd_to_proto.descriptor_to_file import descriptor_to_file
 from jtd_to_proto.jtd_to_proto import jtd_to_proto
 

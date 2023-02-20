@@ -3,12 +3,12 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf import any_pb2
 from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
-from .helpers import temp_dpool
+from jtd_to_proto import descriptor_to_message_class
+from jtd_to_proto.json_to_service import json_to_service
 from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 
 ## Happy Path ##################################################################
@@ -708,6 +708,24 @@ def test_jtd_to_proto_default_dpool():
                 "foo": {
                     "type": "boolean",
                 },
+            }
+        },
+    )
+
+    # Tacking on a `jtd_to_service` test here as well so that we don't have
+    # two tests each using the default descriptor pool
+    json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def={
+            "service": {
+                "rpcs": [
+                    {
+                        "name": "FooPredict",
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
+                    }
+                ]
             }
         },
     )

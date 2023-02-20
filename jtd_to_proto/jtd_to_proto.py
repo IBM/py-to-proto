@@ -16,6 +16,7 @@ import alog
 
 log = alog.use_channel("JTD2P")
 
+
 ## Utils #######################################################################
 
 
@@ -56,6 +57,7 @@ JTD_TO_PROTO_TYPES = {
     # Not strictly part of the JTD spec, but important for protobuf messages
     "bytes": _descriptor.FieldDescriptor.TYPE_BYTES,
 }
+
 
 ## Interface ###################################################################
 
