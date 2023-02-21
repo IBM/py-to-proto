@@ -249,7 +249,7 @@ def _get_rpc_methods(service_descriptor: ServiceDescriptor) -> List[_RPCMethod]:
         method: _descriptor.MethodDescriptor
 
         input_descriptor: _descriptor.Descriptor = method.input_type
-        output_descriptor: _descriptor.Descriptor = method.input_type
+        output_descriptor: _descriptor.Descriptor = method.output_type
 
         input_message_class = descriptor_to_message_class(input_descriptor)
         output_message_class = descriptor_to_message_class(output_descriptor)

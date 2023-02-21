@@ -62,7 +62,7 @@ def bar_message(temp_dpool):
 
 
 @pytest.fixture
-def foo_service_descriptor(temp_dpool, foo_message):
+def foo_service_descriptor(temp_dpool, foo_message, bar_message):
     """Service descriptor fixture"""
     # foo_message needs to have been defined for these input/output message to be valid
     service_json = {
@@ -71,7 +71,7 @@ def foo_service_descriptor(temp_dpool, foo_message):
                 {
                     "name": "FooPredict",
                     "input_type": "foo.bar.Foo",
-                    "output_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
                 }
             ]
         }
@@ -177,7 +177,7 @@ def test_service_descriptor_to_registration_function(foo_service_descriptor):
     )
 
 
-def test_end_to_end_integration(foo_message, foo_service_descriptor):
+def test_end_to_end_integration(foo_message, bar_message, foo_service_descriptor):
     """Test a full grpc service integration"""
     registration_fn = service_descriptor_to_server_registration_function(
         foo_service_descriptor
@@ -190,7 +190,7 @@ def test_end_to_end_integration(foo_message, foo_service_descriptor):
         """gRPC Service Impl"""
 
         def FooPredict(self, request, context):
-            return foo_message(foo=True, bar=42.0)
+            return bar_message(boo=42, baz=True)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     registration_fn(Servicer(), server)
@@ -204,7 +204,8 @@ def test_end_to_end_integration(foo_message, foo_service_descriptor):
 
     # Make a gRPC call
     response = my_stub.FooPredict(request=input)
-    assert response.foo
-    assert response.bar == 42.0
+    assert isinstance(response, bar_message)
+    assert response.boo == 42
+    assert response.baz
 
     server.stop(grace=0)
