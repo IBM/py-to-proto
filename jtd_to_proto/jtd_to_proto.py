@@ -138,7 +138,7 @@ def jtd_to_proto(
     if descriptor_pool is None:
         log.debug2("Using default descriptor pool")
         descriptor_pool = _descriptor_pool.Default()
-    descriptor_pool.Add(fd_proto)
+    descriptor_pool.AddSerializedFile(fd_proto.SerializeToString())
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
