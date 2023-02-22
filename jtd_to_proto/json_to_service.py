@@ -19,7 +19,6 @@ import alog
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
-from jtd_to_proto.jtd_to_proto import JTD_DESCRIPTOR_POOL
 
 log = alog.use_channel("JSON2S")
 
@@ -89,8 +88,8 @@ def json_to_service(
     imports: List[str] = []
 
     if descriptor_pool is None:
-        log.debug2("Using our own descriptor pool")
-        descriptor_pool = JTD_DESCRIPTOR_POOL
+        log.debug2("Using the default descriptor pool")
+        descriptor_pool = _descriptor_pool.Default()
 
     json_service = json_service_def["service"]
     rpcs_def = json_service["rpcs"]
