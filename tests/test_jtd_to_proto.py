@@ -3,13 +3,14 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
+from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
+from jtd_to_proto.jtd_to_proto import JTD_DESCRIPTOR_POOL, _to_upper_camel, jtd_to_proto
 
 ## Happy Path ##################################################################
 
@@ -206,20 +207,6 @@ def test_jtd_to_proto_enum(temp_dpool):
     assert list(fields.keys()) == ["bat"]
     assert fields["bat"].type == fields["bat"].TYPE_ENUM
     assert fields["bat"].label == fields["bat"].LABEL_OPTIONAL
-
-
-def test_jtd_to_proto_top_level_enum(temp_dpool):
-    """Ensure that enums can be converted"""
-    msg_name = "Foo"
-    package = "foo.bar"
-    descriptor = jtd_to_proto(
-        msg_name,
-        package,
-        {"enum": ["VAMPIRE", "DRACULA"]},
-        descriptor_pool=temp_dpool,
-        validate_jtd=True,
-    )
-    assert isinstance(descriptor, EnumDescriptor)
 
 
 def test_jtd_to_proto_arrays_of_primitives(temp_dpool):
@@ -570,10 +557,7 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
 
 
 def test_jtd_to_proto_top_level_enum(temp_dpool):
-    """Make sure that a top-level enum can be converted
-
-    NOTE: This test also validates the use of the default descriptor pool
-    """
+    """Make sure that a top-level enum can be converted"""
     msg_name = "SomeEnum"
     package = "foo.bar"
     descriptor = jtd_to_proto(
@@ -583,6 +567,7 @@ def test_jtd_to_proto_top_level_enum(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
+    assert isinstance(descriptor, EnumDescriptor)
     # Validate message naming
     assert descriptor.name == msg_name
     assert descriptor.full_name == ".".join([package, msg_name])
@@ -698,7 +683,7 @@ def test_jtd_to_proto_uint64(temp_dpool):
 
 def test_jtd_to_proto_default_dpool():
     """This test ensures that without an explicitly passed descriptor pool, the
-    default is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
+    internal descriptor pool for JTD is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
     """
     jtd_to_proto(
         "Foo",
@@ -729,6 +714,10 @@ def test_jtd_to_proto_default_dpool():
             }
         },
     )
+    with pytest.raises(KeyError):
+        _descriptor_pool.Default().FindMessageTypeByName("foo.bar.Foo")
+    # should not raise if we call it directly
+    JTD_DESCRIPTOR_POOL.FindMessageTypeByName("foo.bar.Foo")
 
 
 ## Error Cases #################################################################
