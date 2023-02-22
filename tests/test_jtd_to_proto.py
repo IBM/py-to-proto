@@ -8,9 +8,8 @@ from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
-from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import JTD_DESCRIPTOR_POOL, _to_upper_camel, jtd_to_proto
+from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 
 ## Happy Path ##################################################################
 
@@ -714,10 +713,7 @@ def test_jtd_to_proto_default_dpool():
             }
         },
     )
-    with pytest.raises(KeyError):
-        _descriptor_pool.Default().FindMessageTypeByName("foo.bar.Foo")
-    # should not raise if we call it directly
-    JTD_DESCRIPTOR_POOL.FindMessageTypeByName("foo.bar.Foo")
+    _descriptor_pool.Default().FindMessageTypeByName("foo.bar.Foo")
 
 
 ## Error Cases #################################################################

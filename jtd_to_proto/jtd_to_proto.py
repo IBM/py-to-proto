@@ -16,11 +16,11 @@ import alog
 
 log = alog.use_channel("JTD2P")
 
-JTD_DESCRIPTOR_POOL = _descriptor_pool.DescriptorPool()
-# add google.protobuf stuff to default descriptor pool for JTD
-JTD_DESCRIPTOR_POOL.AddSerializedFile(any_pb2.DESCRIPTOR.serialized_pb)
-JTD_DESCRIPTOR_POOL.AddSerializedFile(struct_pb2.DESCRIPTOR.serialized_pb)
-JTD_DESCRIPTOR_POOL.AddSerializedFile(timestamp_pb2.DESCRIPTOR.serialized_pb)
+# JTD_DESCRIPTOR_POOL = _descriptor_pool.DescriptorPool()
+# # add google.protobuf stuff to default descriptor pool for JTD
+# JTD_DESCRIPTOR_POOL.AddSerializedFile(any_pb2.DESCRIPTOR.serialized_pb)
+# JTD_DESCRIPTOR_POOL.AddSerializedFile(struct_pb2.DESCRIPTOR.serialized_pb)
+# JTD_DESCRIPTOR_POOL.AddSerializedFile(timestamp_pb2.DESCRIPTOR.serialized_pb)
 
 
 ## Utils #######################################################################
@@ -143,8 +143,11 @@ def jtd_to_proto(
     log.debug("Adding Descriptors to DescriptorPool")
     if descriptor_pool is None:
         log.debug2("Using default descriptor pool")
-        descriptor_pool = JTD_DESCRIPTOR_POOL
-    descriptor_pool.Add(fd_proto)
+        descriptor_pool = _descriptor_pool.Default()
+    try:
+        descriptor_pool.FindFileByName(fd_proto.name)
+    except KeyError as e:
+        descriptor_pool.AddSerializedFile(fd_proto.SerializeToString())
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
