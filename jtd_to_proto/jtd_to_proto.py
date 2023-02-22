@@ -17,8 +17,10 @@ import alog
 log = alog.use_channel("JTD2P")
 
 JTD_DESCRIPTOR_POOL = _descriptor_pool.DescriptorPool()
-# add google.protobuf.any to default descriptor pool for JTD
+# add google.protobuf stuff to default descriptor pool for JTD
 JTD_DESCRIPTOR_POOL.AddSerializedFile(any_pb2.DESCRIPTOR.serialized_pb)
+JTD_DESCRIPTOR_POOL.AddSerializedFile(struct_pb2.DESCRIPTOR.serialized_pb)
+JTD_DESCRIPTOR_POOL.AddSerializedFile(timestamp_pb2.DESCRIPTOR.serialized_pb)
 
 
 ## Utils #######################################################################
