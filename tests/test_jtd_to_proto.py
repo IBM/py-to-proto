@@ -716,6 +716,35 @@ def test_jtd_to_proto_default_dpool():
     _descriptor_pool.Default().FindMessageTypeByName("foo.bar.Foo")
 
 
+def test_jtd_to_proto_duplicate_message(temp_dpool):
+    """Check that we can register the same message twice"""
+    msg_name = "Foo"
+    package = "foo.bar"
+    schema = {
+        "properties": {
+            "foo": {
+                "type": "boolean",
+            },
+        }
+    }
+    descriptor = jtd_to_proto(
+        msg_name,
+        package,
+        schema,
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    descriptor2 = jtd_to_proto(
+        msg_name,
+        package,
+        schema,
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+
+    assert descriptor is descriptor2
+
+
 ## Error Cases #################################################################
 
 
@@ -769,6 +798,39 @@ def test_jtd_to_proto_explicit_additional_properties():
                 "additionalProperties": True,
             },
             validate_jtd=False,
+        )
+
+
+def test_jtd_to_proto_duplicate_message_name(temp_dpool):
+    """Check that we cannot register a different message with the same name"""
+    msg_name = "Foo"
+    package = "foo.bar"
+    jtd_to_proto(
+        msg_name,
+        package,
+        {
+            "properties": {
+                "foo": {
+                    "type": "boolean",
+                },
+            }
+        },
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    with pytest.raises(ValueError):
+        jtd_to_proto(
+            msg_name,
+            package,
+            {
+                "properties": {
+                    "bar": {
+                        "type": "int32",
+                    },
+                }
+            },
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
         )
 
 
