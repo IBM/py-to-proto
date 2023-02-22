@@ -3,6 +3,7 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
+from google.protobuf import any_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
@@ -635,15 +636,17 @@ def test_jtd_to_proto_bytes(temp_dpool):
     assert bytes_field.type == bytes_field.TYPE_BYTES
 
 
-def test_jtd_to_proto_any():
+def test_jtd_to_proto_any(temp_dpool):
     """Make sure that fields can have type Any and that the messages can be
     validated even with any which is not in the JTD spec
     """
+    temp_dpool.AddSerializedFile(any_pb2.DESCRIPTOR.serialized_pb)
     bytes_descriptor = jtd_to_proto(
         "HasAny",
         "foo.bar",
         {"properties": {"foo": {"type": "any"}}},
         validate_jtd=True,
+        descriptor_pool=temp_dpool,
     )
     bytes_field = bytes_descriptor.fields_by_name["foo"]
     assert bytes_field.type == bytes_field.TYPE_MESSAGE
@@ -682,7 +685,7 @@ def test_jtd_to_proto_uint64(temp_dpool):
 
 def test_jtd_to_proto_default_dpool():
     """This test ensures that without an explicitly passed descriptor pool, the
-    internal descriptor pool for JTD is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
+    default is used. THIS SHOULD BE THE ONLY TEST THAT DOESN'T USE `temp_dpool`!
     """
     jtd_to_proto(
         "Foo",
