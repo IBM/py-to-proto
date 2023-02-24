@@ -41,6 +41,7 @@ def _are_same_file_descriptors(
             First FileDescriptorProto we want to compare.
         d2: descriptor_pb2.FileDescriptorProto
             second FileDescriptorProto we want to compare.
+
     Returns:
         True if the provided file descriptor proto files are identical.
     """
@@ -71,6 +72,7 @@ def _have_enum_alignment(
             First FileDescriptorProto we want to compare.
         d2: descriptor_pb2.FileDescriptorProto
             second FileDescriptorProto we want to compare.
+
     Returns:
         True if the provided file descriptor proto files are identical.
     """
@@ -177,7 +179,7 @@ def _are_same_message_descriptor(
     return True
 
 
-def _have_same_type_name(d1_type_name: str, d2_type_name: str):
+def _have_same_type_name(d1_type_name: str, d2_type_name: str) -> bool:
     """Check to see if two type_name fields are the same (probably). We need to be very careful
     about this, because in some situations, we make be comparing a fully qualified type_name to
     a type_name that is NOT fully qualified. To check this, we basically check that:
@@ -194,6 +196,7 @@ def _have_same_type_name(d1_type_name: str, d2_type_name: str):
             type_name from first field descriptor.
         d2_type_name: str
             type_name from second field descriptor.
+
     Returns:
         bool
             True if the two field descriptor type names passed are equivalent, False otherwise.
