@@ -33,7 +33,7 @@ def _to_upper_camel(snake_str: str) -> str:
 def _are_same_file_descriptors(
     d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
 ) -> bool:
-    """Recursively validate that there are no consistency issues in the message descriptors of
+    """Validate that there are no consistency issues in the message descriptors of
     our proto file descriptors.
 
     Args:
