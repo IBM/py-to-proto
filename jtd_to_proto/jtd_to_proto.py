@@ -160,15 +160,12 @@ def _are_same_message_descriptor(
     if not d1_field_descs.keys() == d2_field_descs.keys():
         return False
     for field_name in d1_field_descs.keys():
-        # We consider two fields equal if they have the same name, label, type, and type_name
+        # We consider two fields equal if they have the same name, label
         d1_field_descriptor = d1_field_descs[field_name]
         d2_field_descriptor = d2_field_descs[field_name]
         if (
             d1_field_descriptor.label != d2_field_descriptor.label
             or d1_field_descriptor.type != d2_field_descriptor.type
-            or not _have_same_type_name(
-                d1_field_descriptor.type_name, d2_field_descriptor.type_name
-            )
         ):
             return False
     # For nested fields, we treat them similarly to how we've treated messages
@@ -177,39 +174,6 @@ def _are_same_message_descriptor(
         return _check_message_descs_alignment(d1.nested_type, d2.nested_type)
     # Otherwise, we have no more nested layers to check; we're done!
     return True
-
-
-def _have_same_type_name(d1_type_name: str, d2_type_name: str) -> bool:
-    """Check to see if two type_name fields are the same (probably). We need to be very careful
-    about this, because in some situations, we make be comparing a fully qualified type_name to
-    a type_name that is NOT fully qualified. To check this, we basically check that:
-
-    1. If they're the same, we're happy
-    2. If they're the same length and different, we're sad
-    3. If one is longer than the other, if the longer starts with a period, indicating a fully
-       qualified path, and its suffix is the shorter one, which doesn't start with a period,
-       we're happy
-    4. Otherwise we're sad
-
-    Args:
-        d1_type_name: str
-            type_name from first field descriptor.
-        d2_type_name: str
-            type_name from second field descriptor.
-
-    Returns:
-        bool
-            True if the two field descriptor type names passed are equivalent, False otherwise.
-    """
-    if d1_type_name == d2_type_name:
-        return True
-    if len(d2_type_name) > len(d1_type_name):
-        d2_type_name, d1_type_name = d1_type_name, d2_type_name
-    return (
-        d1_type_name.startswith(".")
-        and d1_type_name.endswith(d2_type_name)
-        and not d2_type_name.startswith(".")
-    )
 
 
 ## Globals #####################################################################

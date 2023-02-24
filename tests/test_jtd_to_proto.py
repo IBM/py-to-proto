@@ -10,11 +10,7 @@ import pytest
 
 # Local
 from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import (
-    _have_same_type_name,
-    _to_upper_camel,
-    jtd_to_proto,
-)
+from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
 
 ## Happy Path ##################################################################
 
@@ -725,11 +721,11 @@ def test_jtd_to_proto_default_dpool():
 
 def test_jtd_to_proto_duplicate_message(temp_dpool):
     """Check that we can register the same message twice"""
-    msg_name = "Foo"
-    package = "foo.bar"
+    msg_name = "Message"
+    package = "package"
     schema = {
         "properties": {
-            "foo": {"properties": {"bar": {"type": "boolean"}}},
+            "fooz": {"properties": {"bar": {"type": "boolean"}}},
         }
     }
     descriptor = jtd_to_proto(
@@ -992,10 +988,3 @@ def test_nested_registration_conflict(temp_dpool):
 def test_to_upper_camel_empty():
     """Make sure _to_upper_camel is safe with an empty string"""
     assert _to_upper_camel("") == ""
-
-
-def test_to_type_name_validation():
-    """Make sure _to_upper_camel is safe with an empty string"""
-    assert _have_same_type_name("Foo", "Foo")
-    assert _have_same_type_name(".foo.bar.Foo", "Foo")
-    assert not _have_same_type_name("Bar", "Foo")
