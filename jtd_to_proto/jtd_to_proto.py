@@ -30,6 +30,69 @@ def _to_upper_camel(snake_str: str) -> str:
     )
 
 
+def _are_same_file_descriptors(
+    d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
+) -> bool:
+    """Recursively validate that there are no consistency issues in the message descriptors of
+    our proto file descriptors.
+
+    Args:
+        d1: descriptor_pb2.FileDescriptorProto
+            First FileDescriptorProto we want to compare.
+        d2: descriptor_pb2.FileDescriptorProto
+            second FileDescriptorProto we want to compare.
+    Returns:
+        True if the provided file descriptor proto files are identical.
+    """
+    have_aligned_enums = _have_enum_alignment(d1, d2)
+    have_aligned_messages = _have_message_alignment(d1, d2)
+    return have_aligned_enums and have_aligned_messages
+
+
+def _have_enum_alignment(
+    d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
+) -> bool:
+    """Determine if two FileDescriptorProtos have the same enums. This means the following:
+
+    1. They have the same names in their respective .enum_type properties
+    2. For every enum in enum_type, they have the same number of values & the same names.
+
+    Args:
+        d1: descriptor_pb2.FileDescriptorProto
+            First FileDescriptorProto we want to compare.
+        d2: descriptor_pb2.FileDescriptorProto
+            second FileDescriptorProto we want to compare.
+    Returns:
+        True if the provided file descriptor proto files are identical.
+    """
+    d1_enum_descs = {enum.name: enum for enum in d1.enum_type}
+    d2_enum_descs = {enum.name: enum for enum in d2.enum_type}
+    if d1_enum_descs.keys() != d2_enum_descs.keys():
+        return False
+
+    for enum_name in d1_enum_descs.keys():
+        d1_enum_descriptor = d1_enum_descs[enum_name]
+        d2_enum_descriptor = d2_enum_descs[enum_name]
+        assert len(d1_enum_descriptor.value) == len(d2_enum_descriptor.value)
+        # Compare each entry in the repeated composite container,
+        # i.e., all of our EnumValueDescriptorProto objects
+        for first_enum_val, second_enum_val in zip(
+            d1_enum_descriptor.value, d2_enum_descriptor.value
+        ):
+            if (
+                first_enum_val.name != second_enum_val.name
+                or first_enum_val.number != second_enum_val.number
+            ):
+                return False
+    return True
+
+
+def _have_message_alignment(
+    d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
+) -> bool:
+    return True
+
+
 ## Globals #####################################################################
 
 JTD_TO_PROTO_TYPES = {
@@ -140,11 +203,13 @@ def jtd_to_proto(
         descriptor_pool = _descriptor_pool.Default()
     try:
         existing_fd = descriptor_pool.FindFileByName(fd_proto.name)
-        existing_proto = existing_fd.serialized_pb
-        new_proto = fd_proto.SerializeToString()
+        # Rebuild the file descriptor proto so that we can compare; there is
+        # almost certainly a more efficient way to compare that avoids this.
+        existing_proto = descriptor_pb2.FileDescriptorProto()
+        existing_fd.CopyToProto(existing_proto)
         # Raise if the file exists already with different content
         # Otherwise, do not attempt to re-add the file
-        if existing_proto != new_proto:
+        if not _are_same_file_descriptors(fd_proto, existing_proto):
             raise ValueError(
                 f"Cannot add new file {fd_proto.name} to descriptor pool, file already exists with different content"
             )
