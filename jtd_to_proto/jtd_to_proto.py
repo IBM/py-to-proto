@@ -1,5 +1,5 @@
 # Standard
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import copy
 import re
 
@@ -47,7 +47,9 @@ def _are_same_file_descriptors(
     have_same_deps = d1.dependency == d2.dependency
     are_same_package = d1.package == d2.package
     have_aligned_enums = _have_enum_alignment(d1, d2)
-    have_aligned_messages = _have_message_alignment(d1, d2)
+    have_aligned_messages = _check_message_descs_alignment(
+        d1.message_type, d2.message_type
+    )
     return (
         have_same_deps
         and are_same_package
@@ -94,16 +96,29 @@ def _have_enum_alignment(
     return True
 
 
-def _have_message_alignment(
-    d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
+def _check_message_descs_alignment(
+    d1_msg_container: Any, d2_msg_container: Any
 ) -> bool:
-    """Determine if two FileDescriptorProtos have the same message types. This means the following:
+    """Determine if two message descriptor proto containers, i.e., RepeatedCompositeContainers
+    have the same message types. This means the following:
 
     1. the messages contained in each FileDescriptorProto are the same.
     2. For each of those respective messages, their respective fields are roughly the same.
+       Note that this includes nested_types, which are verified recursively.
+
+    Args:
+        d1_msg_container: Any
+            First container iterable of message descriptors protos to be verified.
+        d2_msg_container: Ant
+            Second container iterable of message descriptors protos to be verified.
+
+    Returns:
+        bool
+            True if the contained message descriptor protos are identical.
     """
-    d1_msg_descs = {msg.name: msg for msg in d1.message_type}
-    d2_msg_descs = {msg.name: msg for msg in d2.message_type}
+    d1_msg_descs = {msg.name: msg for msg in d1_msg_container}
+    d2_msg_descs = {msg.name: msg for msg in d2_msg_container}
+
     # Ensure that our descriptors have the same dependencies & top level message types
     if not d1_msg_descs.keys() == d2_msg_descs.keys():
         return False
@@ -125,7 +140,7 @@ def _are_same_message_descriptor(
 ) -> bool:
     """Determine if two message descriptors proto are representing the same thing. We do this by
     ensuring that their fields all have the same fields, then inspecting each of their labels,
-    names, etc, for alignment.
+    names, etc, for alignment. We do the same for any nested fields.
 
     Args:
         d1: descriptor_pb2.DescriptorProto
@@ -154,6 +169,11 @@ def _are_same_message_descriptor(
             )
         ):
             return False
+    # For nested fields, we treat them similarly to how we've treated messages
+    # and recurse into comparisons used for the top level messages.
+    if d1.nested_type or d2.nested_type:
+        return _check_message_descs_alignment(d1.nested_type, d2.nested_type)
+    # Otherwise, we have no more nested layers to check; we're done!
     return True
 
 
