@@ -725,9 +725,7 @@ def test_jtd_to_proto_duplicate_message(temp_dpool):
     package = "foo.bar"
     schema = {
         "properties": {
-            "foo": {
-                "type": "boolean",
-            },
+            "foo": {"properties": {"bar": {"type": "boolean"}}},
         }
     }
     descriptor = jtd_to_proto(
