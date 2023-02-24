@@ -10,7 +10,11 @@ import pytest
 
 # Local
 from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
+from jtd_to_proto.jtd_to_proto import (
+    _have_same_type_name,
+    _to_upper_camel,
+    jtd_to_proto,
+)
 
 ## Happy Path ##################################################################
 
@@ -911,9 +915,87 @@ def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
         )
 
 
+def test_jtd_to_proto_sad_labels(temp_dpool):
+    """Check that we cannot register a different message with field properties, e.g., label."""
+    msg_name = "Foo"
+    package = "foo.bar"
+    jtd_to_proto(
+        msg_name,
+        package,
+        {"properties": {"foo": {"type": "int32"}}},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    with pytest.raises(ValueError):
+        jtd_to_proto(
+            msg_name,
+            package,
+            {"properties": {"foo": {"type": "string"}}},
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
+        )
+
+
+def test_jtd_to_proto_misaligned_keys(temp_dpool):
+    """Check that we cannot register a different message with missing enums, properties."""
+    msg_name = "Foo"
+    package = "foo.bar"
+    jtd_to_proto(
+        msg_name,
+        package,
+        {"enum": ["Hello", "World"]},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    with pytest.raises(ValueError):
+        jtd_to_proto(
+            msg_name,
+            package,
+            {"properties": {"foo": {"type": "string"}}},
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
+        )
+
+
+def test_nested_registration_conflict(temp_dpool):
+    """Check that we cannot register a different message with a nested change."""
+    msg_name = "Foo"
+    package = "foo.bar"
+    jtd_to_proto(
+        msg_name,
+        package,
+        {
+            "properties": {
+                "foo": {"properties": {"bar": {"type": "boolean"}}},
+            }
+        },
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    with pytest.raises(ValueError):
+        jtd_to_proto(
+            msg_name,
+            package,
+            {
+                "properties": {
+                    "foo": {"properties": {"a_sad_nest": {"type": "int32"}}},
+                }
+            },
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
+        )
+
+
 ## Details #####################################################################
 
 
 def test_to_upper_camel_empty():
     """Make sure _to_upper_camel is safe with an empty string"""
     assert _to_upper_camel("") == ""
+
+
+def test_to_type_name_validation():
+    """Make sure _to_upper_camel is safe with an empty string"""
+    assert _have_same_type_name("Foo", "Foo")
+    assert _have_same_type_name(".foo.bar.Foo", "Foo")
+    assert not _have_same_type_name("Bar", "Foo")
