@@ -44,9 +44,16 @@ def _are_same_file_descriptors(
     Returns:
         True if the provided file descriptor proto files are identical.
     """
+    have_same_deps = d1.dependency == d2.dependency
+    are_same_package = d1.package == d2.package
     have_aligned_enums = _have_enum_alignment(d1, d2)
     have_aligned_messages = _have_message_alignment(d1, d2)
-    return have_aligned_enums and have_aligned_messages
+    return (
+        have_same_deps
+        and are_same_package
+        and have_aligned_enums
+        and have_aligned_messages
+    )
 
 
 def _have_enum_alignment(
@@ -90,7 +97,96 @@ def _have_enum_alignment(
 def _have_message_alignment(
     d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
 ) -> bool:
+    """Determine if two FileDescriptorProtos have the same message types. This means the following:
+
+    1. the messages contained in each FileDescriptorProto are the same.
+    2. For each of those respective messages, their respective fields are roughly the same.
+    """
+    d1_msg_descs = {msg.name: msg for msg in d1.message_type}
+    d2_msg_descs = {msg.name: msg for msg in d2.message_type}
+    # Ensure that our descriptors have the same dependencies & top level message types
+    if not d1_msg_descs.keys() == d2_msg_descs.keys():
+        return False
+    # For every encapsulated message descriptor, ensure that ever field has the same
+    # name, number, label, type, and type name
+    for msg_name in d1_msg_descs.keys():
+        d1_message_descriptor = d1_msg_descs[msg_name]
+        d2_message_descriptor = d2_msg_descs[msg_name]
+        # Ensure that these messages are actually the same
+        if not _are_same_message_descriptor(
+            d1_message_descriptor, d2_message_descriptor
+        ):
+            return False
     return True
+
+
+def _are_same_message_descriptor(
+    d1: descriptor_pb2.DescriptorProto, d2: descriptor_pb2.DescriptorProto
+) -> bool:
+    """Determine if two message descriptors proto are representing the same thing. We do this by
+    ensuring that their fields all have the same fields, then inspecting each of their labels,
+    names, etc, for alignment.
+
+    Args:
+        d1: descriptor_pb2.DescriptorProto
+            First message descriptor to be compared.
+        d2: descriptor_pb2.DescriptorProto
+            second message descriptor to be compared.
+
+    Returns:
+        bool
+            True of messages are identical, False otherwise.
+    """
+    # Make sure all of our named fields align, then check them individually
+    d1_field_descs = {field.name: field for field in d1.field}
+    d2_field_descs = {field.name: field for field in d2.field}
+    if not d1_field_descs.keys() == d2_field_descs.keys():
+        return False
+    for field_name in d1_field_descs.keys():
+        # We consider two fields equal if they have the same name, label, type, and type_name
+        d1_field_descriptor = d1_field_descs[field_name]
+        d2_field_descriptor = d2_field_descs[field_name]
+        if (
+            d1_field_descriptor.label != d2_field_descriptor.label
+            or d1_field_descriptor.type != d2_field_descriptor.type
+            or not _have_same_type_name(
+                d1_field_descriptor.type_name, d2_field_descriptor.type_name
+            )
+        ):
+            return False
+    return True
+
+
+def _have_same_type_name(d1_type_name: str, d2_type_name: str):
+    """Check to see if two type_name fields are the same (probably). We need to be very careful
+    about this, because in some situations, we make be comparing a fully qualified type_name to
+    a type_name that is NOT fully qualified. To check this, we basically check that:
+
+    1. If they're the same, we're happy
+    2. If they're the same length and different, we're sad
+    3. If one is longer than the other, if the longer starts with a period, indicating a fully
+       qualified path, and its suffix is the shorter one, which doesn't start with a period,
+       we're happy
+    4. Otherwise we're sad
+
+    Args:
+        d1_type_name: str
+            type_name from first field descriptor.
+        d2_type_name: str
+            type_name from second field descriptor.
+    Returns:
+        bool
+            True if the two field descriptor type names passed are equivalent, False otherwise.
+    """
+    if d1_type_name == d2_type_name:
+        return True
+    if len(d2_type_name) > len(d1_type_name):
+        d2_type_name, d1_type_name = d1_type_name, d2_type_name
+    return (
+        d1_type_name.startswith(".")
+        and d1_type_name.endswith(d2_type_name)
+        and not d2_type_name.startswith(".")
+    )
 
 
 ## Globals #####################################################################
