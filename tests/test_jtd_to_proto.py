@@ -887,6 +887,30 @@ def test_jtd_to_proto_duplicate_message_name(temp_dpool):
         )
 
 
+def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
+    """Check that we cannot register a different message with the same name with wrong enum vals"""
+    msg_name = "Foo"
+    package = "foo.bar"
+    # The respective values we are going to register
+    first_enum_values = ["Hello", "World"]
+    second_enum_values = ["Hi", "Planet"]
+    jtd_to_proto(
+        msg_name,
+        package,
+        {"enum": first_enum_values},
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    with pytest.raises(ValueError):
+        jtd_to_proto(
+            msg_name,
+            package,
+            {"enum": second_enum_values},
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
+        )
+
+
 ## Details #####################################################################
 
 
