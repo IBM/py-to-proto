@@ -3,7 +3,7 @@ Tests for the jtd_to_proto logic
 """
 
 # Third Party
-from google.protobuf import any_pb2
+from google.protobuf import any_pb2, descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
@@ -744,6 +744,53 @@ def test_jtd_to_proto_duplicate_message(temp_dpool):
     )
 
     assert descriptor is descriptor2
+
+
+def test_type_names_are_fully_qualified_with_nested_messages():
+    """Make sure that type_names are fully qualified with nested messages."""
+    descriptor = jtd_to_proto(
+        "First",
+        "foo.bar",
+        {
+            "properties": {
+                "second": {
+                    "properties": {
+                        "third": {"properties": {"fourth": {"type": "string"}}}
+                    },
+                },
+            }
+        },
+    )
+    # Copy our descriptor over to a proto & make sure it's type_name look correct
+    dproto = descriptor_pb2.DescriptorProto()
+    descriptor.CopyToProto(dproto)
+    package_mapping = {
+        "Second": ".foo.bar.First.Second",
+        "Third": ".foo.bar.First.Second.Third",
+    }
+    # Validate the direct field, i.e., Second, and make sure it has a fully qualified type name
+    assert dproto.field[0].type_name == package_mapping["Second"]
+    # Validate the nested message, i.e., Third, and make sure it has a fully qualified type name
+    assert dproto.nested_type[0].field[0].type_name == package_mapping["Third"]
+
+
+def test_type_names_are_fully_qualified_with_multiple_packages():
+    """Make sure that type_names are fully qualified with multiple packages."""
+    bar_descriptor = jtd_to_proto(
+        "Bar", "barpackage", {"properties": {"mydata": {"type": "string"}}}
+    )
+    foo_descriptor = jtd_to_proto(
+        "Foo",
+        "foopackage",
+        {
+            "properties": {
+                "external_friend": {"type": bar_descriptor},
+            }
+        },
+    )
+    foo_dproto = descriptor_pb2.DescriptorProto()
+    foo_descriptor.CopyToProto(foo_dproto)
+    assert foo_dproto.field[0].type_name == ".barpackage.Bar"
 
 
 ## Error Cases #################################################################
