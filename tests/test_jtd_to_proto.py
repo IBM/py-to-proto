@@ -746,7 +746,7 @@ def test_jtd_to_proto_duplicate_message(temp_dpool):
     assert descriptor is descriptor2
 
 
-def test_type_names_are_fully_qualified_with_nested_messages():
+def test_type_names_are_fully_qualified_with_nested_messages(temp_dpool):
     """Make sure that type_names are fully qualified with nested messages."""
     descriptor = jtd_to_proto(
         "First",
@@ -760,6 +760,7 @@ def test_type_names_are_fully_qualified_with_nested_messages():
                 },
             }
         },
+        descriptor_pool=temp_dpool,
     )
     # Copy our descriptor over to a proto & make sure it's type_name look correct
     dproto = descriptor_pb2.DescriptorProto()
@@ -774,10 +775,13 @@ def test_type_names_are_fully_qualified_with_nested_messages():
     assert dproto.nested_type[0].field[0].type_name == package_mapping["Third"]
 
 
-def test_type_names_are_fully_qualified_with_multiple_packages():
+def test_type_names_are_fully_qualified_with_multiple_packages(temp_dpool):
     """Make sure that type_names are fully qualified with multiple packages."""
     bar_descriptor = jtd_to_proto(
-        "Bar", "barpackage", {"properties": {"mydata": {"type": "string"}}}
+        "Bar",
+        "barpackage",
+        {"properties": {"mydata": {"type": "string"}}},
+        descriptor_pool=temp_dpool,
     )
     foo_descriptor = jtd_to_proto(
         "Foo",
@@ -787,6 +791,7 @@ def test_type_names_are_fully_qualified_with_multiple_packages():
                 "external_friend": {"type": bar_descriptor},
             }
         },
+        descriptor_pool=temp_dpool,
     )
     foo_dproto = descriptor_pb2.DescriptorProto()
     foo_descriptor.CopyToProto(foo_dproto)
