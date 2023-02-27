@@ -47,7 +47,7 @@ def _are_same_file_descriptors(
     """
     have_same_deps = d1.dependency == d2.dependency
     are_same_package = d1.package == d2.package
-    have_aligned_enums = _have_enum_alignment(d1, d2)
+    have_aligned_enums = _are_same_enum_descriptor(d1.enum_type, d2.enum_type)
     have_aligned_messages = _check_message_descs_alignment(
         d1.message_type, d2.message_type
     )
@@ -59,31 +59,30 @@ def _are_same_file_descriptors(
     )
 
 
-def _have_enum_alignment(
-    d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
-) -> bool:
-    """Determine if two FileDescriptorProtos have the same enums. This means the following:
+def _are_same_enum_descriptor(d1_enums: Any, d2_enums: Any) -> bool:
+    """Determine if two iterables of EnumDescriptorProtos have the same enums.
+    This means the following:
 
-    1. They have the same names in their respective .enum_type properties
+    1. They have the same names in their respective .enum_type properties.
     2. For every enum in enum_type, they have the same number of values & the same names.
 
     Args:
-        d1: descriptor_pb2.FileDescriptorProto
-            First FileDescriptorProto we want to compare.
-        d2: descriptor_pb2.FileDescriptorProto
-            second FileDescriptorProto we want to compare.
+        d1_enums: Any
+            First iterable of enum desc protos to compare, e.g., RepeatedCompositeContainer.
+        d2_enums: Any
+            Second iterable of enum desc protos to compare, e.g., RepeatedCompositeContainer.
 
     Returns:
-        True if the provided file descriptor proto files are identical.
+        True if the provided iterable enum descriptors are identical.
     """
-    d1_enum_descs = {enum.name: enum for enum in d1.enum_type}
-    d2_enum_descs = {enum.name: enum for enum in d2.enum_type}
-    if d1_enum_descs.keys() != d2_enum_descs.keys():
+    d1_enum_map = {enum.name: enum for enum in d1_enums}
+    d2_enum_map = {enum.name: enum for enum in d2_enums}
+    if d1_enum_map.keys() != d2_enum_map.keys():
         return False
 
-    for enum_name in d1_enum_descs.keys():
-        d1_enum_descriptor = d1_enum_descs[enum_name]
-        d2_enum_descriptor = d2_enum_descs[enum_name]
+    for enum_name in d1_enum_map.keys():
+        d1_enum_descriptor = d1_enum_map[enum_name]
+        d2_enum_descriptor = d2_enum_map[enum_name]
         if len(d1_enum_descriptor.value) != len(d2_enum_descriptor.value):
             return False
         # Compare each entry in the repeated composite container,
@@ -112,7 +111,7 @@ def _check_message_descs_alignment(
     Args:
         d1_msg_container: Any
             First container iterable of message descriptors protos to be verified.
-        d2_msg_container: Ant
+        d2_msg_container: Any
             Second container iterable of message descriptors protos to be verified.
 
     Returns:
@@ -155,6 +154,9 @@ def _are_same_message_descriptor(
         bool
             True of messages are identical, False otherwise.
     """
+    # Compare any nested enums in our message.
+    if not _are_same_enum_descriptor(d1.enum_type, d2.enum_type):
+        return False
     # Make sure all of our named fields align, then check them individually
     d1_field_descs = {field.name: field for field in d1.field}
     d2_field_descs = {field.name: field for field in d2.field}
