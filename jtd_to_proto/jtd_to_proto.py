@@ -84,7 +84,8 @@ def _have_enum_alignment(
     for enum_name in d1_enum_descs.keys():
         d1_enum_descriptor = d1_enum_descs[enum_name]
         d2_enum_descriptor = d2_enum_descs[enum_name]
-        assert len(d1_enum_descriptor.value) == len(d2_enum_descriptor.value)
+        if len(d1_enum_descriptor.value) != len(d2_enum_descriptor.value):
+            return False
         # Compare each entry in the repeated composite container,
         # i.e., all of our EnumValueDescriptorProto objects
         for first_enum_val, second_enum_val in zip(
