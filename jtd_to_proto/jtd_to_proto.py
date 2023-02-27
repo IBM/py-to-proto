@@ -105,7 +105,7 @@ def _check_message_descs_alignment(
     """Determine if two message descriptor proto containers, i.e., RepeatedCompositeContainers
     have the same message types. This means the following:
 
-    1. the messages contained in each FileDescriptorProto are the same.
+    1. The messages contained in each FileDescriptorProto are the same.
     2. For each of those respective messages, their respective fields are roughly the same.
        Note that this includes nested_types, which are verified recursively.
 
@@ -123,9 +123,9 @@ def _check_message_descs_alignment(
     d2_msg_descs = {msg.name: msg for msg in d2_msg_container}
 
     # Ensure that our descriptors have the same dependencies & top level message types
-    if not d1_msg_descs.keys() == d2_msg_descs.keys():
+    if d1_msg_descs.keys() != d2_msg_descs.keys():
         return False
-    # For every encapsulated message descriptor, ensure that ever field has the same
+    # For every encapsulated message descriptor, ensure that every field has the same
     # name, number, label, type, and type name
     for msg_name in d1_msg_descs.keys():
         d1_message_descriptor = d1_msg_descs[msg_name]
@@ -158,7 +158,7 @@ def _are_same_message_descriptor(
     # Make sure all of our named fields align, then check them individually
     d1_field_descs = {field.name: field for field in d1.field}
     d2_field_descs = {field.name: field for field in d2.field}
-    if not d1_field_descs.keys() == d2_field_descs.keys():
+    if d1_field_descs.keys() != d2_field_descs.keys():
         return False
     for field_name in d1_field_descs.keys():
         # We consider two fields equal if they have the same name, label
