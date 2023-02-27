@@ -911,8 +911,8 @@ def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
         )
 
 
-def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
-    """Check that we cannot register a different message with the same name with wrong enum vals"""
+def test_jtd_to_proto_duplicate_enum_name_different_length(temp_dpool):
+    """Check that we cannot register a different message with the same name & different enum len"""
     msg_name = "Foo"
     package = "foo.bar"
     # The respective values we are going to register
