@@ -935,6 +935,42 @@ def test_jtd_to_proto_duplicate_enum_name_different_length(temp_dpool):
         )
 
 
+def test_jtd_to_proto_duplicate_nested_enums(temp_dpool):
+    """Check that we cannot register a different message of the same name with sad nested enums"""
+    msg_name = "Foo"
+    package = "foo.bar"
+    # Conflicting values for a nested enum in a message that otherwise aligns
+    first_schema = {
+        "properties": {
+            "baz": {
+                "enum": ["Hello", "World"],
+            },
+        },
+    }
+    second_schema = {
+        "properties": {
+            "baz": {
+                "enum": ["Hello", "World", "And an extra value that we don't expect!"],
+            },
+        },
+    }
+    jtd_to_proto(
+        msg_name,
+        package,
+        first_schema,
+        descriptor_pool=temp_dpool,
+        validate_jtd=True,
+    )
+    with pytest.raises(ValueError):
+        jtd_to_proto(
+            msg_name,
+            package,
+            second_schema,
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
+        )
+
+
 def test_jtd_to_proto_sad_labels(temp_dpool):
     """Check that we cannot register a different message with field properties, e.g., label."""
     msg_name = "Foo"
