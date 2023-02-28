@@ -301,7 +301,17 @@ def jtd_to_proto(
             )
     except KeyError:
         # It's okay for the file to not already exist, we'll add it!
-        descriptor_pool.Add(fd_proto)
+        try:
+            descriptor_pool.Add(fd_proto)
+        except TypeError as e:
+            # More likely than not, this is a duplicate symbol; the main case in which
+            # this could occur is when you've compiled files with protoc, added them to your
+            # descriptor pool, and ALSO added the defs in your jtd_to_proto schema, but the
+            # lookup validation with fd_proto.name is skipped because the .proto file fed to
+            # protoc had a different name!
+            raise TypeError(
+                f"Failed to add {fd_proto.name} to descriptor pool with error: [{e}]; Hint: if you previously used protoc to compile this definition, you must recompile it with the name {fd_proto.name} to avoid the conflict."
+            )
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
