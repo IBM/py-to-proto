@@ -798,6 +798,20 @@ def test_type_names_are_fully_qualified_with_multiple_packages(temp_dpool):
     assert foo_dproto.field[0].type_name == ".barpackage.Bar"
 
 
+def test_protoc_collision_same_def(temp_dpool):
+    """Test that if we do jtd_to_proto -> protoc with the same underlying file name, it is okay."""
+    # Happy because the file is named outermessage.proto, so we can find it!
+    protoc_sample = b'\n\x12outermessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
+    jtd_to_proto(
+        name="OuterMessage",
+        package="test.jtd_to_proto",
+        jtd_def={"properties": {"primitive": {"type": "string"}}},
+        validate_jtd=True,
+        descriptor_pool=temp_dpool,
+    )
+    temp_dpool.AddSerializedFile(protoc_sample)
+
+
 ## Error Cases #################################################################
 
 
@@ -871,7 +885,7 @@ def test_jtd_to_proto_duplicate_message_name(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -901,7 +915,7 @@ def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -925,7 +939,7 @@ def test_jtd_to_proto_duplicate_enum_name_different_length(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -961,7 +975,7 @@ def test_jtd_to_proto_duplicate_nested_enums(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -982,7 +996,7 @@ def test_jtd_to_proto_sad_labels(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -1003,7 +1017,7 @@ def test_jtd_to_proto_misaligned_keys(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -1028,7 +1042,7 @@ def test_nested_registration_conflict(temp_dpool):
         descriptor_pool=temp_dpool,
         validate_jtd=True,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         jtd_to_proto(
             msg_name,
             package,
@@ -1039,6 +1053,87 @@ def test_nested_registration_conflict(temp_dpool):
             },
             descriptor_pool=temp_dpool,
             validate_jtd=True,
+        )
+
+
+def test_protoc_collision_different_file_names_with_import_compiled_first(temp_dpool):
+    """Test that we get a TypeError if we add a protoc compiled object -> do a sad JTD to proto."""
+    # This is what happens when you end up importing something compiled by recent
+    # versions of protoc; this was generated via protoc version 3.21.12.
+    protoc_sample = b'\n\x10sadmessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
+    temp_dpool.AddSerializedFile(protoc_sample)
+
+    # NOTE - Since the name of the message (OuterMessage) does not match the proto file name
+    # we compiled (sadmessage.proto), our direct validation is skipped, because we use that
+    # to look up the FileDescriptor. Since we can't find the FileDescriptor, we (currently)
+    # can't validate the message types it contains.
+    with pytest.raises(TypeError):
+        jtd_to_proto(
+            name="OuterMessage",
+            package="test.jtd_to_proto",
+            jtd_def={"properties": {"primitive": {"type": "string"}}},
+            validate_jtd=True,
+            descriptor_pool=temp_dpool,
+        )
+
+
+def test_protoc_collision_different_file_names_with_import_compiled_last(temp_dpool):
+    """Test that we get a TypeError if we do JTD to proto -> add a protoc compiled object."""
+    jtd_to_proto(
+        name="OuterMessage",
+        package="test.jtd_to_proto",
+        jtd_def={"properties": {"primitive": {"type": "string"}}},
+        validate_jtd=True,
+        descriptor_pool=temp_dpool,
+    )
+
+    # This is what happens when you end up importing something compiled by recent
+    # versions of protoc; this was generated via protoc version 3.21.12.
+    protoc_sample = b'\n\x10sadmessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
+    # Descriptor pool does not like this because it is a different file descriptor and the def
+    # of Message type OuterMessage changed; TypeError with duplicate symbols.
+    # NOTE - yes, this is a test for the descriptor pool API, but the reason is we test the
+    # opposite operation order above, and these error types should be consistent to make them
+    # easier for people to understand & handle.
+    with pytest.raises(TypeError):
+        temp_dpool.AddSerializedFile(protoc_sample)
+
+
+def test_protoc_collision_different_def_jtd_to_proto_first(temp_dpool):
+    """Test that we get a TypeError if we JTD to proto -> import serialized def that conflicts."""
+    jtd_to_proto(
+        name="OuterMessage",
+        package="test.jtd_to_proto",
+        jtd_def={"properties": {"foobar": {"type": "int32"}}},
+        validate_jtd=True,
+        descriptor_pool=temp_dpool,
+    )
+    # NOTE: This is essentially testing the behavior of protobufs descriptor pool when you have a
+    # conflict, but we do this explicitly here since we have a similar test for jtd to proto last;
+    # the behavior of these things should be the same, otherwise we may have different behavior
+    # based on import order.
+    #
+    # This is what happens when you end up importing something compiled by recent
+    # versions of protoc; this was generated via protoc version 3.21.12.
+    protoc_sample = b'\n\x12outermessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
+    with pytest.raises(TypeError):
+        temp_dpool.AddSerializedFile(protoc_sample)
+
+
+def test_protoc_collision_different_def_jtd_to_proto_last(temp_dpool):
+    """Test that we get a TypeError if we import serialized def -> JTD to proto that conflicts."""
+    # This is what happens when you end up importing something compiled by recent
+    # versions of protoc; this was generated via protoc version 3.21.12.
+    protoc_sample = b'\n\x12outermessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
+    temp_dpool.AddSerializedFile(protoc_sample)
+    # Now that it's in our descriptor pool, we are sad in future JTD to proto calls!
+    with pytest.raises(TypeError):
+        jtd_to_proto(
+            name="OuterMessage",
+            package="test.jtd_to_proto",
+            jtd_def={"properties": {"foobar": {"type": "int32"}}},
+            validate_jtd=True,
+            descriptor_pool=temp_dpool,
         )
 
 
