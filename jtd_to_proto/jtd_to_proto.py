@@ -296,7 +296,13 @@ def jtd_to_proto(
         # Raise if the file exists already with different content
         # Otherwise, do not attempt to re-add the file
         if not _are_same_file_descriptors(fd_proto, existing_proto):
-            raise ValueError(
+            # NOTE: This is a TypeError because that is what you get most of the time when you
+            # have conflict issues in the descriptor pool arising from JTD to Proto followed by
+            # importing differing defs for the same top level message type using different file
+            # names (i.e., skipping this validation) compiled by protoc. Raising TypeError here
+            # ensures that we at least usually raise the same error type regardless of
+            # import / operation order.
+            raise TypeError(
                 f"Cannot add new file {fd_proto.name} to descriptor pool, file already exists with different content"
             )
     except KeyError:
