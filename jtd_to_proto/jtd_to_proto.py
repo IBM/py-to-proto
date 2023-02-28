@@ -1,5 +1,5 @@
 # Standard
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import copy
 import re
 
@@ -28,6 +28,155 @@ def _to_upper_camel(snake_str: str) -> str:
         snake_str[0].upper()
         + re.sub("_([a-zA-Z])", lambda pat: pat.group(1).upper(), snake_str)[1:]
     )
+
+
+def _are_same_file_descriptors(
+    d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
+) -> bool:
+    """Validate that there are no consistency issues in the message descriptors of
+    our proto file descriptors.
+
+    Args:
+        d1: descriptor_pb2.FileDescriptorProto
+            First FileDescriptorProto we want to compare.
+        d2: descriptor_pb2.FileDescriptorProto
+            second FileDescriptorProto we want to compare.
+
+    Returns:
+        True if the provided file descriptor proto files are identical.
+    """
+    have_same_deps = d1.dependency == d2.dependency
+    are_same_package = d1.package == d2.package
+    have_aligned_enums = _are_same_enum_descriptor(d1.enum_type, d2.enum_type)
+    have_aligned_messages = _check_message_descs_alignment(
+        d1.message_type, d2.message_type
+    )
+    return (
+        have_same_deps
+        and are_same_package
+        and have_aligned_enums
+        and have_aligned_messages
+    )
+
+
+def _are_same_enum_descriptor(d1_enums: Any, d2_enums: Any) -> bool:
+    """Determine if two iterables of EnumDescriptorProtos have the same enums.
+    This means the following:
+
+    1. They have the same names in their respective .enum_type properties.
+    2. For every enum in enum_type, they have the same number of values & the same names.
+
+    Args:
+        d1_enums: Any
+            First iterable of enum desc protos to compare, e.g., RepeatedCompositeContainer.
+        d2_enums: Any
+            Second iterable of enum desc protos to compare, e.g., RepeatedCompositeContainer.
+
+    Returns:
+        True if the provided iterable enum descriptors are identical.
+    """
+    d1_enum_map = {enum.name: enum for enum in d1_enums}
+    d2_enum_map = {enum.name: enum for enum in d2_enums}
+    if d1_enum_map.keys() != d2_enum_map.keys():
+        return False
+
+    for enum_name in d1_enum_map.keys():
+        d1_enum_descriptor = d1_enum_map[enum_name]
+        d2_enum_descriptor = d2_enum_map[enum_name]
+        if len(d1_enum_descriptor.value) != len(d2_enum_descriptor.value):
+            return False
+        # Compare each entry in the repeated composite container,
+        # i.e., all of our EnumValueDescriptorProto objects
+        for first_enum_val, second_enum_val in zip(
+            d1_enum_descriptor.value, d2_enum_descriptor.value
+        ):
+            if (
+                first_enum_val.name != second_enum_val.name
+                or first_enum_val.number != second_enum_val.number
+            ):
+                return False
+    return True
+
+
+def _check_message_descs_alignment(
+    d1_msg_container: Any, d2_msg_container: Any
+) -> bool:
+    """Determine if two message descriptor proto containers, i.e., RepeatedCompositeContainers
+    have the same message types. This means the following:
+
+    1. The messages contained in each FileDescriptorProto are the same.
+    2. For each of those respective messages, their respective fields are roughly the same.
+       Note that this includes nested_types, which are verified recursively.
+
+    Args:
+        d1_msg_container: Any
+            First container iterable of message descriptors protos to be verified.
+        d2_msg_container: Any
+            Second container iterable of message descriptors protos to be verified.
+
+    Returns:
+        bool
+            True if the contained message descriptor protos are identical.
+    """
+    d1_msg_descs = {msg.name: msg for msg in d1_msg_container}
+    d2_msg_descs = {msg.name: msg for msg in d2_msg_container}
+
+    # Ensure that our descriptors have the same dependencies & top level message types
+    if d1_msg_descs.keys() != d2_msg_descs.keys():
+        return False
+    # For every encapsulated message descriptor, ensure that every field has the same
+    # name, number, label, type, and type name
+    for msg_name in d1_msg_descs.keys():
+        d1_message_descriptor = d1_msg_descs[msg_name]
+        d2_message_descriptor = d2_msg_descs[msg_name]
+        # Ensure that these messages are actually the same
+        if not _are_same_message_descriptor(
+            d1_message_descriptor, d2_message_descriptor
+        ):
+            return False
+    return True
+
+
+def _are_same_message_descriptor(
+    d1: descriptor_pb2.DescriptorProto, d2: descriptor_pb2.DescriptorProto
+) -> bool:
+    """Determine if two message descriptors proto are representing the same thing. We do this by
+    ensuring that their fields all have the same fields, then inspecting each of their labels,
+    names, etc, for alignment. We do the same for any nested fields.
+
+    Args:
+        d1: descriptor_pb2.DescriptorProto
+            First message descriptor to be compared.
+        d2: descriptor_pb2.DescriptorProto
+            second message descriptor to be compared.
+
+    Returns:
+        bool
+            True of messages are identical, False otherwise.
+    """
+    # Compare any nested enums in our message.
+    if not _are_same_enum_descriptor(d1.enum_type, d2.enum_type):
+        return False
+    # Make sure all of our named fields align, then check them individually
+    d1_field_descs = {field.name: field for field in d1.field}
+    d2_field_descs = {field.name: field for field in d2.field}
+    if d1_field_descs.keys() != d2_field_descs.keys():
+        return False
+    for field_name in d1_field_descs.keys():
+        # We consider two fields equal if they have the same name, label
+        d1_field_descriptor = d1_field_descs[field_name]
+        d2_field_descriptor = d2_field_descs[field_name]
+        if (
+            d1_field_descriptor.label != d2_field_descriptor.label
+            or d1_field_descriptor.type != d2_field_descriptor.type
+        ):
+            return False
+    # For nested fields, we treat them similarly to how we've treated messages
+    # and recurse into comparisons used for the top level messages.
+    if d1.nested_type or d2.nested_type:
+        return _check_message_descs_alignment(d1.nested_type, d2.nested_type)
+    # Otherwise, we have no more nested layers to check; we're done!
+    return True
 
 
 ## Globals #####################################################################
@@ -140,17 +289,35 @@ def jtd_to_proto(
         descriptor_pool = _descriptor_pool.Default()
     try:
         existing_fd = descriptor_pool.FindFileByName(fd_proto.name)
-        existing_proto = existing_fd.serialized_pb
-        new_proto = fd_proto.SerializeToString()
+        # Rebuild the file descriptor proto so that we can compare; there is
+        # almost certainly a more efficient way to compare that avoids this.
+        existing_proto = descriptor_pb2.FileDescriptorProto()
+        existing_fd.CopyToProto(existing_proto)
         # Raise if the file exists already with different content
         # Otherwise, do not attempt to re-add the file
-        if existing_proto != new_proto:
-            raise ValueError(
+        if not _are_same_file_descriptors(fd_proto, existing_proto):
+            # NOTE: This is a TypeError because that is what you get most of the time when you
+            # have conflict issues in the descriptor pool arising from JTD to Proto followed by
+            # importing differing defs for the same top level message type using different file
+            # names (i.e., skipping this validation) compiled by protoc. Raising TypeError here
+            # ensures that we at least usually raise the same error type regardless of
+            # import / operation order.
+            raise TypeError(
                 f"Cannot add new file {fd_proto.name} to descriptor pool, file already exists with different content"
             )
     except KeyError:
         # It's okay for the file to not already exist, we'll add it!
-        descriptor_pool.Add(fd_proto)
+        try:
+            descriptor_pool.Add(fd_proto)
+        except TypeError as e:
+            # More likely than not, this is a duplicate symbol; the main case in which
+            # this could occur is when you've compiled files with protoc, added them to your
+            # descriptor pool, and ALSO added the defs in your jtd_to_proto schema, but the
+            # lookup validation with fd_proto.name is skipped because the .proto file fed to
+            # protoc had a different name!
+            raise TypeError(
+                f"Failed to add {fd_proto.name} to descriptor pool with error: [{e}]; Hint: if you previously used protoc to compile this definition, you must recompile it with the name {fd_proto.name} to avoid the conflict."
+            )
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
