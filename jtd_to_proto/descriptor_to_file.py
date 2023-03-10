@@ -48,7 +48,11 @@ PROTO_FILE_ONEOF_HEADER = f"{PROTO_FILE_INDENT}/*-- oneofs --*/"
 
 
 def descriptor_to_file(
-    descriptor: Union[_descriptor.FileDescriptor, _descriptor.Descriptor, _descriptor.ServiceDescriptor],
+    descriptor: Union[
+        _descriptor.FileDescriptor,
+        _descriptor.Descriptor,
+        _descriptor.ServiceDescriptor,
+    ],
 ) -> str:
     """Serialize a .proto file from a FileDescriptor
 
@@ -62,7 +66,14 @@ def descriptor_to_file(
     """
 
     # If this is a message descriptor, use its corresponding FileDescriptor
-    if isinstance(descriptor, (_descriptor.Descriptor, _descriptor.EnumDescriptor, _descriptor.ServiceDescriptor)):
+    if isinstance(
+        descriptor,
+        (
+            _descriptor.Descriptor,
+            _descriptor.EnumDescriptor,
+            _descriptor.ServiceDescriptor,
+        ),
+    ):
         descriptor = descriptor.file
     if not isinstance(descriptor, _descriptor.FileDescriptor):
         raise ValueError(f"Invalid file descriptor of type {type(descriptor)}")
@@ -98,7 +109,6 @@ def descriptor_to_file(
         for service_descriptor in descriptor.services_by_name.values():
             proto_file_lines.extend(_service_descriptor_to_file(service_descriptor))
             proto_file_lines.append("")
-
 
     return "\n".join(proto_file_lines)
 
@@ -173,6 +183,7 @@ def _message_descriptor_to_file(
     lines.append("}")
     return _indent_lines(indent, lines)
 
+
 def _service_descriptor_to_file(
     service_descriptor: _descriptor.ServiceDescriptor,
     indent: int = 0,
@@ -181,9 +192,12 @@ def _service_descriptor_to_file(
     lines = []
     lines.append(f"service {service_descriptor.name} {{")
     for method in service_descriptor.methods:
-        lines.append(f"{PROTO_FILE_INDENT}rpc {method.name}({method.input_type.full_name}) returns ({method.output_type.full_name});")
+        lines.append(
+            f"{PROTO_FILE_INDENT}rpc {method.name}({method.input_type.full_name}) returns ({method.output_type.full_name});"
+        )
     lines.append("}")
     return _indent_lines(indent, lines)
+
 
 def _field_descriptor_to_file(
     field_descriptor: _descriptor.FieldDescriptor,

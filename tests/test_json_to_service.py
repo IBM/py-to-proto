@@ -3,8 +3,8 @@ Tests for json_to_service functions
 """
 
 # Standard
-import os
 from concurrent import futures
+import os
 import types
 
 # Third Party

@@ -48,11 +48,11 @@ ServiceJsonType = Dict[str, Dict[str, List[Dict[str, str]]]]
 
 
 def json_to_service(
-        name: str,
-        package: str,
-        json_service_def: ServiceJsonType,
-        *,
-        descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+    name: str,
+    package: str,
+    json_service_def: ServiceJsonType,
+    *,
+    descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.ServiceDescriptor:
     """Convert a JSON representation of an RPC service into a ServiceDescriptor.
 
@@ -137,7 +137,7 @@ def json_to_service(
 
 
 def service_descriptor_to_service(
-        service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor: _descriptor.ServiceDescriptor,
 ) -> Type[service.Service]:
     """Create a service class from a service descriptor
 
@@ -162,7 +162,7 @@ def service_descriptor_to_service(
 
 
 def service_descriptor_to_client_stub(
-        service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor: _descriptor.ServiceDescriptor,
 ) -> Type:
     """Generates a new client stub class from the service descriptor
 
@@ -197,7 +197,7 @@ def service_descriptor_to_client_stub(
 
 
 def service_descriptor_to_server_registration_function(
-        service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor: _descriptor.ServiceDescriptor,
 ) -> Callable[[Service, grpc.Server], None]:
     """Generates a server registration function from the service descriptor
 

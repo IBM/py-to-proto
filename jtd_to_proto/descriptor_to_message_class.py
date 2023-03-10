@@ -13,17 +13,16 @@ import os
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection, service
-from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 from google.protobuf.descriptor import ServiceDescriptor
+from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 from google.protobuf.service import Service
-
 
 # Local
 from .descriptor_to_file import descriptor_to_file
 
 
 def descriptor_to_message_class(
-        descriptor: Union[_descriptor.Descriptor, _descriptor.EnumDescriptor],
+    descriptor: Union[_descriptor.Descriptor, _descriptor.EnumDescriptor],
 ) -> Union[Type[_message.Message], EnumTypeWrapper]:
     """Create the proto class from the given descriptor
 
@@ -91,8 +90,12 @@ def _maybe_classmethod(func: Callable, parent: Any):
 
 
 def _add_protobuf_serializers(
-        type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]],
-        descriptor: Union[_descriptor.Descriptor, _descriptor.EnumDescriptor, _descriptor.ServiceDescriptor],
+    type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]],
+    descriptor: Union[
+        _descriptor.Descriptor,
+        _descriptor.EnumDescriptor,
+        _descriptor.ServiceDescriptor,
+    ],
 ) -> Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]:
     """Helper to add the to_proto_file and write_proto_file to a given type class.
 
@@ -107,6 +110,7 @@ def _add_protobuf_serializers(
     """
     # Add to_proto_file
     if not hasattr(type_class, "to_proto_file"):
+
         def to_proto_file(first_arg) -> str:
             f"Create the serialized .proto file content holding all definitions for {descriptor.name}"
             return descriptor_to_file(first_arg.DESCRIPTOR)
@@ -115,10 +119,11 @@ def _add_protobuf_serializers(
 
     # Add write_proto_file
     if not hasattr(type_class, "write_proto_file"):
+
         def write_proto_file(first_arg, root_dir: str = "."):
             "Write out the proto file to the target directory"
             with open(
-                    os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
+                os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
             ) as handle:
                 handle.write(first_arg.to_proto_file())
 

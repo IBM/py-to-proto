@@ -4,7 +4,7 @@ Tests for descriptor_to_file
 
 # Standard
 from types import ModuleType
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 import importlib
 import os
 import random
@@ -21,9 +21,9 @@ import pytest
 import alog
 
 # Local
-from jtd_to_proto.json_to_service import json_to_service
 from .conftest import temp_dpool
 from jtd_to_proto.descriptor_to_file import descriptor_to_file
+from jtd_to_proto.json_to_service import json_to_service
 from jtd_to_proto.jtd_to_proto import jtd_to_proto
 
 log = alog.use_channel("TEST")
@@ -122,14 +122,14 @@ sample_jtd_def = jtd_def = {
 }
 
 
-def compile_proto_module(proto_content: str, imported_file_contents: Dict[str, str] = None) -> Optional[ModuleType]:
+def compile_proto_module(
+    proto_content: str, imported_file_contents: Dict[str, str] = None
+) -> Optional[ModuleType]:
     """Compile the proto file content locally"""
     with tempfile.TemporaryDirectory() as dirname:
         mod_name = "{}_temp".format(
             "".join([random.choice(string.ascii_lowercase) for _ in range(8)])
         )
-
-        print("MODE NAME:", mod_name)
 
         fname = os.path.join(dirname, f"{mod_name}.proto")
         with open(fname, "w") as handle:
@@ -159,8 +159,6 @@ def compile_proto_module(proto_content: str, imported_file_contents: Dict[str, s
 
         # Put this dir on the sys.path and load the module
         sys.path.append(dirname)
-
-        print("Files in tempdir:", os.listdir(dirname))
 
         mod = importlib.import_module(f"{mod_name}_pb2")
         sys.path.pop()
@@ -274,16 +272,19 @@ def test_descriptor_to_file_service_descriptor(temp_dpool):
                 ]
             }
         },
-        descriptor_pool=temp_dpool
+        descriptor_pool=temp_dpool,
     )
     # TODO: type annotation fixup
     res = descriptor_to_file(service_descriptor)
     assert "service FooService {" in res
 
+
 def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool):
     """Make sure descriptor_to_file can be called on a ServiceDescriptor"""
 
-    random_message_name = "".join([random.choice(string.ascii_lowercase) for _ in range(8)])
+    random_message_name = "".join(
+        [random.choice(string.ascii_lowercase) for _ in range(8)]
+    )
     # 🌶️🌶️🌶️ The message names must be capitalized to work
     random_message_name = random_message_name.capitalize()
 
@@ -299,9 +300,7 @@ def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool)
         descriptor_pool=temp_dpool,
     )
     message_descriptor_file = descriptor_to_file(foo_message_descriptor)
-    imported_files = {
-        foo_message_descriptor.file.name: message_descriptor_file
-    }
+    imported_files = {foo_message_descriptor.file.name: message_descriptor_file}
     service_descriptor = json_to_service(
         name=f"{random_message_name}Service",
         package="foo.bar",
@@ -316,8 +315,7 @@ def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool)
                 ]
             }
         },
-        descriptor_pool=temp_dpool
+        descriptor_pool=temp_dpool,
     )
     res = descriptor_to_file(service_descriptor)
-    print(res)
     assert compile_proto_module(res, imported_file_contents=imported_files)
