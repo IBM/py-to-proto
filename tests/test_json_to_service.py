@@ -158,9 +158,9 @@ def test_services_can_be_written_to_protobuf_files(foo_service_descriptor, tmp_p
     assert hasattr(ServiceClass, "write_proto_file")
 
     tempdir = str(tmp_path)
-    ServiceClass.write_proto(tempdir)
-    assert "foo_service.proto" in os.listdir(tempdir)
-    with open(os.path.join(tempdir, "foo_service.proto"), "r") as f:
+    ServiceClass.write_proto_file(tempdir)
+    assert "fooservice.proto" in os.listdir(tempdir)
+    with open(os.path.join(tempdir, "fooservice.proto"), "r") as f:
         assert "service FooService {" in f.read()
 
 

@@ -1,4 +1,5 @@
 # Standard
+import os
 from typing import Callable, Dict, List, Optional, Type
 import dataclasses
 import types
@@ -18,7 +19,8 @@ import jtd
 import alog
 
 # Local
-from jtd_to_proto import descriptor_to_message_class
+from jtd_to_proto import descriptor_to_message_class, descriptor_to_file
+from jtd_to_proto.descriptor_to_message_class import _maybe_classmethod
 
 log = alog.use_channel("JSON2S")
 
@@ -149,12 +151,33 @@ def service_descriptor_to_service(
             A new class with metaclass google.protobuf.service_reflection.GeneratedServiceType containing the methods
             from the service_descriptor
     """
-    return types.new_class(
+    service_class = types.new_class(
         service_descriptor.name,
         (service.Service,),
         {"metaclass": GeneratedServiceType},
         lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
     )
+
+    # Add to_proto_file
+    if not hasattr(service_class, "to_proto_file"):
+        def to_proto_file(first_arg) -> str:
+            f"Create the serialized .proto file content holding all definitions for {service_descriptor.name}"
+            return descriptor_to_file(first_arg.DESCRIPTOR)
+
+        _maybe_classmethod(to_proto_file, service_class)
+
+    # Add write_proto_file
+    if not hasattr(service_class, "write_proto_file"):
+        def write_proto_file(first_arg, root_dir: str = "."):
+            "Write out the proto file to the target directory"
+            with open(
+                    os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
+            ) as handle:
+                handle.write(first_arg.to_proto_file())
+
+        _maybe_classmethod(write_proto_file, service_class)
+
+    return service_class
 
 
 def service_descriptor_to_client_stub(
