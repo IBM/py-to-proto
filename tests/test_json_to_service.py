@@ -3,6 +3,7 @@ Tests for json_to_service functions
 """
 
 # Standard
+import os
 from concurrent import futures
 import types
 
@@ -147,6 +148,20 @@ def test_service_descriptor_to_service(foo_service_descriptor):
 
     assert hasattr(ServiceClass, "FooPredict")
     assert ServiceClass.__name__ == foo_service_descriptor.name
+
+
+def test_services_can_be_written_to_protobuf_files(foo_service_descriptor, tmp_path):
+    """Ensure that service class can be created from service descriptor"""
+    ServiceClass = service_descriptor_to_service(foo_service_descriptor)
+
+    assert hasattr(ServiceClass, "to_proto_file")
+    assert hasattr(ServiceClass, "write_proto_file")
+
+    tempdir = str(tmp_path)
+    ServiceClass.write_proto(tempdir)
+    assert "foo_service.proto" in os.listdir(tempdir)
+    with open(os.path.join(tempdir, "foo_service.proto"), "r") as f:
+        assert "service FooService {" in f.read()
 
 
 def test_service_descriptor_to_client_stub(foo_service_descriptor):
