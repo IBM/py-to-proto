@@ -1,5 +1,4 @@
 # Standard
-import os
 from typing import Callable, Dict, List, Optional, Type
 import dataclasses
 import types
@@ -19,8 +18,8 @@ import jtd
 import alog
 
 # Local
-from jtd_to_proto import descriptor_to_message_class, descriptor_to_file
-from jtd_to_proto.descriptor_to_message_class import _maybe_classmethod
+from jtd_to_proto import descriptor_to_message_class
+from jtd_to_proto.descriptor_to_message_class import _add_to_proto_write_proto
 
 log = alog.use_channel("JSON2S")
 
@@ -49,11 +48,11 @@ ServiceJsonType = Dict[str, Dict[str, List[Dict[str, str]]]]
 
 
 def json_to_service(
-    name: str,
-    package: str,
-    json_service_def: ServiceJsonType,
-    *,
-    descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+        name: str,
+        package: str,
+        json_service_def: ServiceJsonType,
+        *,
+        descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.ServiceDescriptor:
     """Convert a JSON representation of an RPC service into a ServiceDescriptor.
 
@@ -138,7 +137,7 @@ def json_to_service(
 
 
 def service_descriptor_to_service(
-    service_descriptor: _descriptor.ServiceDescriptor,
+        service_descriptor: _descriptor.ServiceDescriptor,
 ) -> Type[service.Service]:
     """Create a service class from a service descriptor
 
@@ -157,31 +156,13 @@ def service_descriptor_to_service(
         {"metaclass": GeneratedServiceType},
         lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
     )
-
-    # Add to_proto_file
-    if not hasattr(service_class, "to_proto_file"):
-        def to_proto_file(first_arg) -> str:
-            f"Create the serialized .proto file content holding all definitions for {service_descriptor.name}"
-            return descriptor_to_file(first_arg.DESCRIPTOR)
-
-        _maybe_classmethod(to_proto_file, service_class)
-
-    # Add write_proto_file
-    if not hasattr(service_class, "write_proto_file"):
-        def write_proto_file(first_arg, root_dir: str = "."):
-            "Write out the proto file to the target directory"
-            with open(
-                    os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
-            ) as handle:
-                handle.write(first_arg.to_proto_file())
-
-        _maybe_classmethod(write_proto_file, service_class)
+    service_class = _add_to_proto_write_proto(service_class, service_descriptor)
 
     return service_class
 
 
 def service_descriptor_to_client_stub(
-    service_descriptor: _descriptor.ServiceDescriptor,
+        service_descriptor: _descriptor.ServiceDescriptor,
 ) -> Type:
     """Generates a new client stub class from the service descriptor
 
@@ -216,7 +197,7 @@ def service_descriptor_to_client_stub(
 
 
 def service_descriptor_to_server_registration_function(
-    service_descriptor: _descriptor.ServiceDescriptor,
+        service_descriptor: _descriptor.ServiceDescriptor,
 ) -> Callable[[Service, grpc.Server], None]:
     """Generates a server registration function from the service descriptor
 
