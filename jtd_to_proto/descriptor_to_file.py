@@ -181,7 +181,7 @@ def _service_descriptor_to_file(
     lines = []
     lines.append(f"service {service_descriptor.name} {{")
     for method in service_descriptor.methods:
-        lines.append(f"{PROTO_FILE_INDENT}rpc {method.name}({method.input_type}) returns ({method.output_type});")
+        lines.append(f"{PROTO_FILE_INDENT}rpc {method.name}({method.input_type.full_name}) returns ({method.output_type.full_name});")
     lines.append("}")
     return _indent_lines(indent, lines)
 
