@@ -60,7 +60,7 @@ def descriptor_to_message_class(
                 descriptor_to_message_class(nested_enum_descriptor),
             )
 
-    message_class = _add_to_proto_write_proto(message_class, descriptor)
+    message_class = _add_protobuf_serializers(message_class, descriptor)
     return message_class
 
 
@@ -90,7 +90,7 @@ def _maybe_classmethod(func: Callable, parent: Any):
     setattr(parent, func.__name__, _wrapper)
 
 
-def _add_to_proto_write_proto(
+def _add_protobuf_serializers(
         type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]],
         descriptor: Union[_descriptor.Descriptor, _descriptor.EnumDescriptor, _descriptor.ServiceDescriptor],
 ) -> Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]:

@@ -19,7 +19,7 @@ import alog
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
-from jtd_to_proto.descriptor_to_message_class import _add_to_proto_write_proto
+from jtd_to_proto.descriptor_to_message_class import _add_protobuf_serializers
 
 log = alog.use_channel("JSON2S")
 
@@ -156,7 +156,7 @@ def service_descriptor_to_service(
         {"metaclass": GeneratedServiceType},
         lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
     )
-    service_class = _add_to_proto_write_proto(service_class, service_descriptor)
+    service_class = _add_protobuf_serializers(service_class, service_descriptor)
 
     return service_class
 
