@@ -21,6 +21,7 @@ import pytest
 import alog
 
 # Local
+from jtd_to_proto.json_to_service import json_to_service
 from .conftest import temp_dpool
 from jtd_to_proto.descriptor_to_file import descriptor_to_file
 from jtd_to_proto.jtd_to_proto import jtd_to_proto
@@ -229,3 +230,37 @@ def test_descriptor_to_file_enum_descriptor(temp_dpool):
     )
     res = descriptor_to_file(enum_descriptor)
     assert "enum Foo {" in res
+
+
+def test_descriptor_to_file_service_descriptor(temp_dpool):
+    """Make sure descriptor_to_file can be called on a ServiceDescriptor"""
+    foo_message_descriptor = jtd_to_proto(
+        "Foo",
+        "foo.bar",
+        {
+            "properties": {
+                "foo": {"type": "boolean"},
+                "bar": {"type": "float32"},
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    service_descriptor = json_to_service(
+        name="FooService",
+        package="foo.bar",
+        json_service_def={
+            "service": {
+                "rpcs": [
+                    {
+                        "name": "FooPredict",
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
+                    }
+                ]
+            }
+        },
+        descriptor_pool=temp_dpool
+    )
+    # TODO: type annotation fixup
+    res = descriptor_to_file(service_descriptor)
+    assert "service FooService {" in res
