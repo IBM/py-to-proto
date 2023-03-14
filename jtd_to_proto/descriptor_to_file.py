@@ -34,6 +34,10 @@ PROTO_FILE_MESSAGE_HEADER = """
 /*-- MESSAGES ----------------------------------------------------------------*/
 """
 
+PROTO_FILE_SERVICES_HEADER = """
+/*-- SERVICES ----------------------------------------------------------------*/
+"""
+
 PROTO_FILE_NESTED_ENUM_HEADER = f"{PROTO_FILE_INDENT}/*-- nested enums --*/"
 PROTO_FILE_NESTED_MESSAGE_HEADER = f"{PROTO_FILE_INDENT}/*-- nested messages --*/"
 PROTO_FILE_FIELD_HEADER = f"{PROTO_FILE_INDENT}/*-- fields --*/"
@@ -44,7 +48,11 @@ PROTO_FILE_ONEOF_HEADER = f"{PROTO_FILE_INDENT}/*-- oneofs --*/"
 
 
 def descriptor_to_file(
-    descriptor: Union[_descriptor.FileDescriptor, _descriptor.Descriptor],
+    descriptor: Union[
+        _descriptor.FileDescriptor,
+        _descriptor.Descriptor,
+        _descriptor.ServiceDescriptor,
+    ],
 ) -> str:
     """Serialize a .proto file from a FileDescriptor
 
@@ -58,7 +66,14 @@ def descriptor_to_file(
     """
 
     # If this is a message descriptor, use its corresponding FileDescriptor
-    if isinstance(descriptor, (_descriptor.Descriptor, _descriptor.EnumDescriptor)):
+    if isinstance(
+        descriptor,
+        (
+            _descriptor.Descriptor,
+            _descriptor.EnumDescriptor,
+            _descriptor.ServiceDescriptor,
+        ),
+    ):
         descriptor = descriptor.file
     if not isinstance(descriptor, _descriptor.FileDescriptor):
         raise ValueError(f"Invalid file descriptor of type {type(descriptor)}")
@@ -87,6 +102,12 @@ def descriptor_to_file(
         proto_file_lines.append(PROTO_FILE_MESSAGE_HEADER)
         for message_descriptor in descriptor.message_types_by_name.values():
             proto_file_lines.extend(_message_descriptor_to_file(message_descriptor))
+            proto_file_lines.append("")
+
+    if descriptor.services_by_name:
+        proto_file_lines.append(PROTO_FILE_SERVICES_HEADER)
+        for service_descriptor in descriptor.services_by_name.values():
+            proto_file_lines.extend(_service_descriptor_to_file(service_descriptor))
             proto_file_lines.append("")
 
     return "\n".join(proto_file_lines)
@@ -159,6 +180,21 @@ def _message_descriptor_to_file(
     for oneof_descriptor in message_descriptor.oneofs:
         lines.extend(_oneof_descriptor_to_file(oneof_descriptor, indent=1))
 
+    lines.append("}")
+    return _indent_lines(indent, lines)
+
+
+def _service_descriptor_to_file(
+    service_descriptor: _descriptor.ServiceDescriptor,
+    indent: int = 0,
+) -> List[str]:
+    """Make the string representation of a service"""
+    lines = []
+    lines.append(f"service {service_descriptor.name} {{")
+    for method in service_descriptor.methods:
+        lines.append(
+            f"{PROTO_FILE_INDENT}rpc {method.name}({method.input_type.full_name}) returns ({method.output_type.full_name});"
+        )
     lines.append("}")
     return _indent_lines(indent, lines)
 

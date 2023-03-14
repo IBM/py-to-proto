@@ -4,7 +4,7 @@ Tests for descriptor_to_file
 
 # Standard
 from types import ModuleType
-from typing import Optional
+from typing import Dict, List, Optional
 import importlib
 import os
 import random
@@ -23,6 +23,7 @@ import alog
 # Local
 from .conftest import temp_dpool
 from jtd_to_proto.descriptor_to_file import descriptor_to_file
+from jtd_to_proto.json_to_service import json_to_service
 from jtd_to_proto.jtd_to_proto import jtd_to_proto
 
 log = alog.use_channel("TEST")
@@ -121,19 +122,31 @@ sample_jtd_def = jtd_def = {
 }
 
 
-def compile_proto_module(proto_content: str) -> Optional[ModuleType]:
+def compile_proto_module(
+    proto_content: str, imported_file_contents: Dict[str, str] = None
+) -> Optional[ModuleType]:
     """Compile the proto file content locally"""
     with tempfile.TemporaryDirectory() as dirname:
         mod_name = "{}_temp".format(
             "".join([random.choice(string.ascii_lowercase) for _ in range(8)])
         )
+
         fname = os.path.join(dirname, f"{mod_name}.proto")
         with open(fname, "w") as handle:
             handle.write(proto_content)
 
+        # Write out any files that need to be imported
+        if imported_file_contents:
+            for file_name, file_content in imported_file_contents.items():
+                file_path = os.path.join(dirname, file_name)
+                with open(file_path, "w") as handle:
+                    handle.write(file_content)
+
+        proto_files_to_compile = " ".join(os.listdir(dirname))
+
         proc = subprocess.Popen(
             shlex.split(
-                f"{sys.executable} -m grpc_tools.protoc -I '{dirname}' --python_out {dirname} {fname}"
+                f"{sys.executable} -m grpc_tools.protoc -I '{dirname}' --python_out {dirname} {proto_files_to_compile}"
             ),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -146,6 +159,7 @@ def compile_proto_module(proto_content: str) -> Optional[ModuleType]:
 
         # Put this dir on the sys.path and load the module
         sys.path.append(dirname)
+
         mod = importlib.import_module(f"{mod_name}_pb2")
         sys.path.pop()
         return mod
@@ -229,3 +243,79 @@ def test_descriptor_to_file_enum_descriptor(temp_dpool):
     )
     res = descriptor_to_file(enum_descriptor)
     assert "enum Foo {" in res
+
+
+def test_descriptor_to_file_service_descriptor(temp_dpool):
+    """Make sure descriptor_to_file can be called on a ServiceDescriptor"""
+    foo_message_descriptor = jtd_to_proto(
+        name="Foo",
+        package="foo.bar",
+        jtd_def={
+            "properties": {
+                "foo": {"type": "boolean"},
+                "bar": {"type": "float32"},
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    service_descriptor = json_to_service(
+        name="FooService",
+        package="foo.bar",
+        json_service_def={
+            "service": {
+                "rpcs": [
+                    {
+                        "name": "FooPredict",
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
+                    }
+                ]
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    # TODO: type annotation fixup
+    res = descriptor_to_file(service_descriptor)
+    assert "service FooService {" in res
+
+
+def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool):
+    """Make sure descriptor_to_file can be called on a ServiceDescriptor"""
+
+    random_message_name = "".join(
+        [random.choice(string.ascii_lowercase) for _ in range(8)]
+    )
+    # 🌶️🌶️🌶️ The message names must be capitalized to work
+    random_message_name = random_message_name.capitalize()
+
+    foo_message_descriptor = jtd_to_proto(
+        name=f"{random_message_name}",
+        package="foo.bar",
+        jtd_def={
+            "properties": {
+                "foo": {"type": "boolean"},
+                "bar": {"type": "float32"},
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    message_descriptor_file = descriptor_to_file(foo_message_descriptor)
+    imported_files = {foo_message_descriptor.file.name: message_descriptor_file}
+    service_descriptor = json_to_service(
+        name=f"{random_message_name}Service",
+        package="foo.bar",
+        json_service_def={
+            "service": {
+                "rpcs": [
+                    {
+                        "name": "FooPredict",
+                        "input_type": f"foo.bar.{random_message_name}",
+                        "output_type": f"foo.bar.{random_message_name}",
+                    }
+                ]
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    res = descriptor_to_file(service_descriptor)
+    assert compile_proto_module(res, imported_file_contents=imported_files)

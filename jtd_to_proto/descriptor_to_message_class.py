@@ -12,8 +12,10 @@ import os
 # Third Party
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from google.protobuf import reflection
+from google.protobuf import reflection, service
+from google.protobuf.descriptor import ServiceDescriptor
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
+from google.protobuf.service import Service
 
 # Local
 from .descriptor_to_file import descriptor_to_file
@@ -57,27 +59,7 @@ def descriptor_to_message_class(
                 descriptor_to_message_class(nested_enum_descriptor),
             )
 
-    # Add to_proto_file
-    if not hasattr(message_class, "to_proto_file"):
-
-        def to_proto_file(first_arg) -> str:
-            f"Create the serialized .proto file content holding all definitions for {descriptor.name}"
-            return descriptor_to_file(first_arg.DESCRIPTOR)
-
-        _maybe_classmethod(to_proto_file, message_class)
-
-    # Add write_proto_file
-    if not hasattr(message_class, "write_proto_file"):
-
-        def write_proto_file(first_arg, root_dir: str = "."):
-            "Write out the proto file to the target directory"
-            with open(
-                os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
-            ) as handle:
-                handle.write(first_arg.to_proto_file())
-
-        _maybe_classmethod(write_proto_file, message_class)
-
+    message_class = _add_protobuf_serializers(message_class, descriptor)
     return message_class
 
 
@@ -105,3 +87,46 @@ def _maybe_classmethod(func: Callable, parent: Any):
         _wrapper = MethodType(_wrapper, parent)
 
     setattr(parent, func.__name__, _wrapper)
+
+
+def _add_protobuf_serializers(
+    type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]],
+    descriptor: Union[
+        _descriptor.Descriptor,
+        _descriptor.EnumDescriptor,
+        _descriptor.ServiceDescriptor,
+    ],
+) -> Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]:
+    """Helper to add the to_proto_file and write_proto_file to a given type class.
+
+    Args:
+        descriptor:  Union[_descriptor.Descriptor, _descriptor.EnumDescriptor, _descriptor.ServiceDescriptor]
+            The message or enum Descriptor
+        type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]
+
+    Returns:
+       Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]
+            A new class with the to_proto_file and write_proto_file added
+    """
+    # Add to_proto_file
+    if not hasattr(type_class, "to_proto_file"):
+
+        def to_proto_file(first_arg) -> str:
+            f"Create the serialized .proto file content holding all definitions for {descriptor.name}"
+            return descriptor_to_file(first_arg.DESCRIPTOR)
+
+        _maybe_classmethod(to_proto_file, type_class)
+
+    # Add write_proto_file
+    if not hasattr(type_class, "write_proto_file"):
+
+        def write_proto_file(first_arg, root_dir: str = "."):
+            "Write out the proto file to the target directory"
+            with open(
+                os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
+            ) as handle:
+                handle.write(first_arg.to_proto_file())
+
+        _maybe_classmethod(write_proto_file, type_class)
+
+    return type_class

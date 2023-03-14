@@ -19,6 +19,7 @@ import alog
 
 # Local
 from jtd_to_proto import descriptor_to_message_class
+from jtd_to_proto.descriptor_to_message_class import _add_protobuf_serializers
 
 log = alog.use_channel("JSON2S")
 
@@ -149,12 +150,15 @@ def service_descriptor_to_service(
             A new class with metaclass google.protobuf.service_reflection.GeneratedServiceType containing the methods
             from the service_descriptor
     """
-    return types.new_class(
+    service_class = types.new_class(
         service_descriptor.name,
         (service.Service,),
         {"metaclass": GeneratedServiceType},
         lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
     )
+    service_class = _add_protobuf_serializers(service_class, service_descriptor)
+
+    return service_class
 
 
 def service_descriptor_to_client_stub(

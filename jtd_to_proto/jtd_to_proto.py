@@ -197,8 +197,6 @@ JTD_TO_PROTO_TYPES = {
     "uint8": _descriptor.FieldDescriptor.TYPE_UINT32,
     "int16": _descriptor.FieldDescriptor.TYPE_INT32,
     "uint16": _descriptor.FieldDescriptor.TYPE_UINT32,
-    "int8": _descriptor.FieldDescriptor.TYPE_INT32,
-    "uint8": _descriptor.FieldDescriptor.TYPE_UINT32,
     "int32": _descriptor.FieldDescriptor.TYPE_INT32,
     "uint32": _descriptor.FieldDescriptor.TYPE_UINT32,
     "int64": _descriptor.FieldDescriptor.TYPE_INT64,
