@@ -9,7 +9,6 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
-import jtd
 
 # First Party
 import alog
@@ -244,7 +243,16 @@ def jtd_to_proto(
     # the results
     if validate_jtd:
         log.debug2("Validating JTD")
-        jtd.schema.Schema.from_dict(jtd_def)
+        try:
+            # Third Party
+            import jtd
+
+            jtd.schema.Schema.from_dict(jtd_def)
+        except ImportError:
+            log.warning(
+                "Validation missing dependencies. To enable, pip install jtd_to_proto[validation]"
+            )
+            log.warning("WARNING: This includes GPLv3 licensed dependencies")
 
     # This list will be used to aggregate the list of message DescriptorProtos
     # for any nested message objects defined inline
