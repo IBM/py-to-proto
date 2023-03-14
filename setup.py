@@ -17,7 +17,13 @@ assert version is not None, "Must set RELEASE_VERSION"
 
 # Read in the requirements
 with open(os.path.join(python_base, "requirements.txt"), "r") as handle:
-    requirements = handle.read()
+    requirements = handle.read().split("\n")
+
+
+# Split out jtd as the optional requirement for validation
+jtd_req = [req for req in requirements if req.startswith("jtd")]
+requirements = list(set(requirements) - set(jtd_req))
+extras_require = {"validation": jtd_req}
 
 setup(
     name="jtd_to_proto",
@@ -40,4 +46,5 @@ setup(
     keywords=["json", "json typedef", "jtd", "protobuf", "proto"],
     packages=["jtd_to_proto"],
     install_requires=requirements,
+    extras_require=extras_require,
 )
