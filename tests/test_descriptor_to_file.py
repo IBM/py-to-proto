@@ -177,7 +177,6 @@ def test_descriptor_to_file_compilable_proto(temp_dpool):
                 "foo.bar.baz.bat",
                 sample_jtd_def,
                 descriptor_pool=temp_dpool,
-                validate_jtd=True,
             )
         )
     )

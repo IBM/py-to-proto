@@ -30,7 +30,6 @@ def test_jtd_to_proto_primitives(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -67,7 +66,6 @@ def test_jtd_to_proto_objects(temp_dpool):
             },
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -102,7 +100,6 @@ def test_jtd_to_proto_additonal_properties(temp_dpool):
             },
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -148,7 +145,6 @@ def test_jtd_to_proto_timestamp(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -182,7 +178,6 @@ def test_jtd_to_proto_enum(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -226,7 +221,6 @@ def test_jtd_to_proto_arrays_of_primitives(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -265,7 +259,6 @@ def test_jtd_to_proto_arrays_of_objects(temp_dpool):
             },
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -303,7 +296,6 @@ def test_jtd_to_proto_arrays_of_enums(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -347,7 +339,6 @@ def test_jtd_to_proto_maps_to_primitives(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -389,7 +380,6 @@ def test_jtd_to_proto_maps_to_objects(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -433,7 +423,6 @@ def test_jtd_to_proto_maps_to_enums(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -491,7 +480,6 @@ def test_jtd_to_proto_oneofs(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -536,7 +524,6 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
             },
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     # Validate message naming
     assert descriptor.name == msg_name
@@ -565,7 +552,6 @@ def test_jtd_to_proto_top_level_enum(temp_dpool):
         package,
         {"enum": ["FOO", "BAR"]},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     assert isinstance(descriptor, EnumDescriptor)
     # Validate message naming
@@ -630,7 +616,6 @@ def test_jtd_to_proto_bytes(temp_dpool):
         "foo.bar",
         {"properties": {"foo": {"type": "bytes"}}},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     bytes_field = bytes_descriptor.fields_by_name["foo"]
     assert bytes_field.type == bytes_field.TYPE_BYTES
@@ -645,7 +630,6 @@ def test_jtd_to_proto_any(temp_dpool):
         "HasAny",
         "foo.bar",
         {"properties": {"foo": {"type": "any"}}},
-        validate_jtd=True,
         descriptor_pool=temp_dpool,
     )
     bytes_field = bytes_descriptor.fields_by_name["foo"]
@@ -662,7 +646,6 @@ def test_jtd_to_proto_int64(temp_dpool):
         "foo.bar",
         {"properties": {"foo": {"type": "int64"}}},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     int64_field = int64_descriptor.fields_by_name["foo"]
     assert int64_field.type == int64_field.TYPE_INT64
@@ -677,7 +660,6 @@ def test_jtd_to_proto_uint64(temp_dpool):
         "foo.bar",
         {"properties": {"foo": {"type": "uint64"}}},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     uint64_field = uint64_descriptor.fields_by_name["foo"]
     assert uint64_field.type == uint64_field.TYPE_UINT64
@@ -733,14 +715,12 @@ def test_jtd_to_proto_duplicate_message(temp_dpool):
         package,
         schema,
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     descriptor2 = jtd_to_proto(
         msg_name,
         package,
         schema,
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
 
     assert descriptor is descriptor2
@@ -806,7 +786,6 @@ def test_protoc_collision_same_def(temp_dpool):
         name="OuterMessage",
         package="test.jtd_to_proto",
         jtd_def={"properties": {"primitive": {"type": "string"}}},
-        validate_jtd=True,
         descriptor_pool=temp_dpool,
     )
     temp_dpool.AddSerializedFile(protoc_sample)
@@ -815,18 +794,12 @@ def test_protoc_collision_same_def(temp_dpool):
 ## Error Cases #################################################################
 
 
-def test_jtd_to_proto_invalid_def():
-    """Make sure that the validation catches an invalid JTD definition"""
-    with pytest.raises(AttributeError):
-        jtd_to_proto("Foo", "foo.bar", {"foo": "bar"}, validate_jtd=True)
-
-
 def test_jtd_to_proto_invalid_top_level():
     """Make sure that an error is raised if the top-level definition is a nested
     field specification
     """
     with pytest.raises(ValueError):
-        jtd_to_proto("Foo", "foo.bar", {"type": "boolean"}, validate_jtd=True)
+        jtd_to_proto("Foo", "foo.bar", {"type": "boolean"})
 
 
 def test_jtd_to_proto_invalid_type_string():
@@ -844,7 +817,6 @@ def test_jtd_to_proto_invalid_type_string():
                     },
                 },
             },
-            validate_jtd=False,
         )
 
 
@@ -864,7 +836,6 @@ def test_jtd_to_proto_explicit_additional_properties():
                 },
                 "additionalProperties": True,
             },
-            validate_jtd=False,
         )
 
 
@@ -883,7 +854,6 @@ def test_jtd_to_proto_duplicate_message_name(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -897,7 +867,6 @@ def test_jtd_to_proto_duplicate_message_name(temp_dpool):
                 }
             },
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -913,7 +882,6 @@ def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
         package,
         {"enum": first_enum_values},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -921,7 +889,6 @@ def test_jtd_to_proto_duplicate_enum_name(temp_dpool):
             package,
             {"enum": second_enum_values},
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -937,7 +904,6 @@ def test_jtd_to_proto_duplicate_enum_name_different_length(temp_dpool):
         package,
         {"enum": first_enum_values},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -945,7 +911,6 @@ def test_jtd_to_proto_duplicate_enum_name_different_length(temp_dpool):
             package,
             {"enum": second_enum_values},
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -973,7 +938,6 @@ def test_jtd_to_proto_duplicate_nested_enums(temp_dpool):
         package,
         first_schema,
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -981,7 +945,6 @@ def test_jtd_to_proto_duplicate_nested_enums(temp_dpool):
             package,
             second_schema,
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -994,7 +957,6 @@ def test_jtd_to_proto_sad_labels(temp_dpool):
         package,
         {"properties": {"foo": {"type": "int32"}}},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -1002,7 +964,6 @@ def test_jtd_to_proto_sad_labels(temp_dpool):
             package,
             {"properties": {"foo": {"type": "string"}}},
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -1015,7 +976,6 @@ def test_jtd_to_proto_misaligned_keys(temp_dpool):
         package,
         {"enum": ["Hello", "World"]},
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -1023,7 +983,6 @@ def test_jtd_to_proto_misaligned_keys(temp_dpool):
             package,
             {"properties": {"foo": {"type": "string"}}},
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -1040,7 +999,6 @@ def test_nested_registration_conflict(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-        validate_jtd=True,
     )
     with pytest.raises(TypeError):
         jtd_to_proto(
@@ -1052,7 +1010,6 @@ def test_nested_registration_conflict(temp_dpool):
                 }
             },
             descriptor_pool=temp_dpool,
-            validate_jtd=True,
         )
 
 
@@ -1072,7 +1029,6 @@ def test_protoc_collision_different_file_names_with_import_compiled_first(temp_d
             name="OuterMessage",
             package="test.jtd_to_proto",
             jtd_def={"properties": {"primitive": {"type": "string"}}},
-            validate_jtd=True,
             descriptor_pool=temp_dpool,
         )
 
@@ -1083,7 +1039,6 @@ def test_protoc_collision_different_file_names_with_import_compiled_last(temp_dp
         name="OuterMessage",
         package="test.jtd_to_proto",
         jtd_def={"properties": {"primitive": {"type": "string"}}},
-        validate_jtd=True,
         descriptor_pool=temp_dpool,
     )
 
@@ -1105,7 +1060,6 @@ def test_protoc_collision_different_def_jtd_to_proto_first(temp_dpool):
         name="OuterMessage",
         package="test.jtd_to_proto",
         jtd_def={"properties": {"foobar": {"type": "int32"}}},
-        validate_jtd=True,
         descriptor_pool=temp_dpool,
     )
     # NOTE: This is essentially testing the behavior of protobufs descriptor pool when you have a
@@ -1132,7 +1086,6 @@ def test_protoc_collision_different_def_jtd_to_proto_last(temp_dpool):
             name="OuterMessage",
             package="test.jtd_to_proto",
             jtd_def={"properties": {"foobar": {"type": "int32"}}},
-            validate_jtd=True,
             descriptor_pool=temp_dpool,
         )
 

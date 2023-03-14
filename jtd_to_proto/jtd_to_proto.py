@@ -9,7 +9,6 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
-import jtd
 
 # First Party
 import alog
@@ -214,7 +213,6 @@ def jtd_to_proto(
     package: str,
     jtd_def: Dict[str, Union[dict, str]],
     *,
-    validate_jtd: bool = False,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> _descriptor.Descriptor:
     """Convert a JTD schema into a set of proto DESCRIPTOR objects.
@@ -230,8 +228,6 @@ def jtd_to_proto(
             The full JTD schema dict
 
     Kwargs:
-        validate_jtd:  bool
-            Whether or not to validate the JTD schema
         descriptor_pool:  Optional[descriptor_pool.DescriptorPool]
             If given, this DescriptorPool will be used to aggregate the set of
             message descriptors
@@ -240,12 +236,6 @@ def jtd_to_proto(
         descriptor:  descriptor.Descriptor
             The top-level MessageDescriptor corresponding to this jtd definition
     """
-    # If performing validation, attempt to parse schema with jtd and throw away
-    # the results
-    if validate_jtd:
-        log.debug2("Validating JTD")
-        jtd.schema.Schema.from_dict(jtd_def)
-
     # This list will be used to aggregate the list of message DescriptorProtos
     # for any nested message objects defined inline
     imports = []
