@@ -119,6 +119,29 @@ def test_json_to_service_descriptor(temp_dpool, foo_message, bar_message):
     assert len(service_descriptor.methods) == 2
 
 
+def test_json_to_service_input_validation(temp_dpool, foo_message):
+    """Make sure that an error is raised if the service definition is invalid"""
+    # This def is missing the `input_type` field
+    service_json = {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooPredict",
+                    "output_type": "foo.bar.Foo",
+                }
+            ]
+        }
+    }
+    with pytest.raises(ValueError) as excinfo:
+        json_to_service(
+            package="foo.bar",
+            name="FooService",
+            json_service_def=service_json,
+            descriptor_pool=temp_dpool,
+        )
+    assert "Invalid service json" in str(excinfo.value)
+
+
 def test_service_descriptor_to_service(foo_service_descriptor):
     """Ensure that service class can be created from service descriptor"""
     ServiceClass = service_descriptor_to_service(foo_service_descriptor)
