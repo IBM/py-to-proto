@@ -97,6 +97,9 @@ def test_jtd_to_proto_additonal_properties(temp_dpool):
         {
             "properties": {
                 "buz": {
+                    "properties": {
+                        "blat": {"type": "int8"},
+                    },
                     "additionalProperties": True,
                 },
             },
@@ -114,7 +117,7 @@ def test_jtd_to_proto_additonal_properties(temp_dpool):
     assert nested_types[0].name == "Buz"
     assert nested_types[0].full_name == ".".join([package, msg_name, "Buz"])
     nested_fields = dict(nested_types[0].fields_by_name)
-    assert list(nested_fields.keys()) == ["additionalProperties"]
+    assert set(nested_fields.keys()) == {"blat", "additionalProperties"}
     assert (
         nested_fields["additionalProperties"].type
         == nested_fields["additionalProperties"].TYPE_MESSAGE
@@ -817,7 +820,7 @@ def test_protoc_collision_same_def(temp_dpool):
 
 def test_jtd_to_proto_invalid_def():
     """Make sure that the validation catches an invalid JTD definition"""
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError):
         jtd_to_proto("Foo", "foo.bar", {"foo": "bar"}, validate_jtd=True)
 
 
