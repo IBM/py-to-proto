@@ -1,2 +1,3 @@
 protobuf>=3.20.*,<5
+jtd==0.1.*
 alchemy-logging>=1.0.3

@@ -3,7 +3,6 @@ htmlcov
 __pycache__
 *.egg-info/
 dist/
-build/
 .DS_Store
 .pytest_cache
 .bash_history

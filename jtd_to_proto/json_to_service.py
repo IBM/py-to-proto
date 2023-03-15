@@ -12,6 +12,7 @@ from google.protobuf.descriptor import ServiceDescriptor
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
 import grpc
+import jtd
 
 # First Party
 import alog
@@ -21,6 +22,26 @@ from jtd_to_proto import descriptor_to_message_class
 from jtd_to_proto.descriptor_to_message_class import _add_protobuf_serializers
 
 log = alog.use_channel("JSON2S")
+
+SERVICE_JTD_SCHEMA = jtd.Schema.from_dict(
+    {
+        "properties": {
+            "service": {
+                "properties": {
+                    "rpcs": {
+                        "elements": {
+                            "properties": {
+                                "input_type": {"type": "string"},
+                                "name": {"type": "string"},
+                                "output_type": {"type": "string"},
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
 
 # Python type hint equivalent of jtd service schema
 ServiceJsonType = Dict[str, Dict[str, List[Dict[str, str]]]]
@@ -54,6 +75,16 @@ def json_to_service(
         descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor corresponding to this json definition
     """
+    # Ensure we have a valid service spec
+    log.debug2("Validating service json")
+    validation_errors: List[jtd.ValidationError] = jtd.validate(
+        schema=SERVICE_JTD_SCHEMA, instance=json_service_def
+    )
+    if validation_errors:
+        for validation_error in validation_errors:
+            log.error("Service JSON validation error: %s", validation_error)
+        raise ValueError("Invalid service json")
+
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
 
