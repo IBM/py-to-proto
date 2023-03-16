@@ -195,7 +195,7 @@ def _check_service_desc_alignment(
     if d1_service_descs.keys() != d2_service_descs.keys():
         # Excluding from code coverage: We can't actually generate file descriptors with multiple services in them.
         # But, this check seems pretty basic and worth leaving in if this ever gets extended in the future.
-        return False # pragma: no cover
+        return False  # pragma: no cover
 
     # For every service, ensure that every method is the same
     for svc_name in d1_service_descs.keys():

@@ -183,7 +183,7 @@ INVALID_DUPLICATE_SERVICES = [
             "rpcs": [
                 {
                     "name": "FooTrain",
-                    "input_type": "foo.bar.Bar", # Different input
+                    "input_type": "foo.bar.Bar",  # Different input
                     "output_type": "foo.bar.Bar",
                 }
             ]
@@ -195,12 +195,13 @@ INVALID_DUPLICATE_SERVICES = [
                 {
                     "name": "FooTrain",
                     "input_type": "foo.bar.Foo",
-                    "output_type": "foo.bar.Foo", # Different output
+                    "output_type": "foo.bar.Foo",  # Different output
                 }
             ]
         }
-    }
+    },
 ]
+
 
 @pytest.mark.parametrize("schema", INVALID_DUPLICATE_SERVICES)
 def test_multiple_services_with_the_same_name_are_not_okay(
