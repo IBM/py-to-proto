@@ -9,6 +9,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import struct_pb2, timestamp_pb2
+import google.protobuf.descriptor_pool
 
 # First Party
 import alog
@@ -32,6 +33,43 @@ def _to_upper_camel(snake_str: str) -> str:
     )
 
 
+def _safe_add_fd_to_pool(
+    fd_proto: descriptor_pb2.FileDescriptorProto,
+    descriptor_pool: google.protobuf.descriptor_pool.DescriptorPool,
+):
+    try:
+        existing_fd = descriptor_pool.FindFileByName(fd_proto.name)
+        # Rebuild the file descriptor proto so that we can compare; there is
+        # almost certainly a more efficient way to compare that avoids this.
+        existing_proto = descriptor_pb2.FileDescriptorProto()
+        existing_fd.CopyToProto(existing_proto)
+        # Raise if the file exists already with different content
+        # Otherwise, do not attempt to re-add the file
+        if not _are_same_file_descriptors(fd_proto, existing_proto):
+            # NOTE: This is a TypeError because that is what you get most of the time when you
+            # have conflict issues in the descriptor pool arising from JTD to Proto followed by
+            # importing differing defs for the same top level message type using different file
+            # names (i.e., skipping this validation) compiled by protoc. Raising TypeError here
+            # ensures that we at least usually raise the same error type regardless of
+            # import / operation order.
+            raise TypeError(
+                f"Cannot add new file {fd_proto.name} to descriptor pool, file already exists with different content"
+            )
+    except KeyError:
+        # It's okay for the file to not already exist, we'll add it!
+        try:
+            descriptor_pool.Add(fd_proto)
+        except TypeError as e:
+            # More likely than not, this is a duplicate symbol; the main case in which
+            # this could occur is when you've compiled files with protoc, added them to your
+            # descriptor pool, and ALSO added the defs in your jtd_to_proto schema, but the
+            # lookup validation with fd_proto.name is skipped because the .proto file fed to
+            # protoc had a different name!
+            raise TypeError(
+                f"Failed to add {fd_proto.name} to descriptor pool with error: [{e}]; Hint: if you previously used protoc to compile this definition, you must recompile it with the name {fd_proto.name} to avoid the conflict."
+            )
+
+
 def _are_same_file_descriptors(
     d1: descriptor_pb2.FileDescriptorProto, d2: descriptor_pb2.FileDescriptorProto
 ) -> bool:
@@ -53,11 +91,13 @@ def _are_same_file_descriptors(
     have_aligned_messages = _check_message_descs_alignment(
         d1.message_type, d2.message_type
     )
+    have_aligned_services = _check_service_desc_alignment(d1.service, d2.service)
     return (
         have_same_deps
         and are_same_package
         and have_aligned_enums
         and have_aligned_messages
+        and have_aligned_services
     )
 
 
@@ -137,6 +177,89 @@ def _check_message_descs_alignment(
         ):
             return False
     return True
+
+
+def _check_service_desc_alignment(
+    d1_service_list: List[descriptor_pb2.ServiceDescriptorProto],
+    d2_service_list: List[descriptor_pb2.ServiceDescriptorProto],
+) -> bool:
+    d1_service_descs = {svc.name: svc for svc in d1_service_list}
+    d2_service_descs = {svc.name: svc for svc in d2_service_list}
+
+    log.debug(
+        "Checking service descriptors: [%s] and [%s]",
+        d1_service_descs,
+        d2_service_descs,
+    )
+    # Ensure that our service names are the same set
+    if d1_service_descs.keys() != d2_service_descs.keys():
+        # Excluding from code coverage: We can't actually generate file descriptors with multiple services in them.
+        # But, this check seems pretty basic and worth leaving in if this ever gets extended in the future.
+        return False  # pragma: no cover
+
+    # For every service, ensure that every method is the same
+    for svc_name in d1_service_descs.keys():
+        d1_service = d1_service_descs[svc_name]
+        d2_service = d2_service_descs[svc_name]
+
+        if not _are_same_service_descriptor(d1_service, d2_service):
+            return False
+    return True
+
+
+def _are_same_service_descriptor(
+    d1_service: descriptor_pb2.ServiceDescriptorProto,
+    d2_service: descriptor_pb2.ServiceDescriptorProto,
+) -> bool:
+    # Not checking service.name because we only compare services with the same name
+
+    d1_methods = {method.name: method for method in d1_service.method}
+    d2_methods = {method.name: method for method in d2_service.method}
+
+    # Ensure that our service names are the same set
+    if d1_methods.keys() != d2_methods.keys():
+        return False
+
+    # For every service, ensure that every method is the same
+    for method_name in d1_methods.keys():
+        d1_method = d1_methods[method_name]
+        d2_method = d2_methods[method_name]
+
+        if not _are_same_method_descriptor(d1_method, d2_method):
+            return False
+
+    return True
+
+
+def _are_same_method_descriptor(
+    d1_method: descriptor_pb2.MethodDescriptorProto,
+    d2_method: descriptor_pb2.MethodDescriptorProto,
+) -> bool:
+    # Not checking method.name because we only compare services with the same name
+
+    if not _are_types_similar(d1_method.input_type, d2_method.input_type):
+        return False
+    if not _are_types_similar(d1_method.output_type, d2_method.output_type):
+        return False
+    # TODO: Add the ability for `json_to_service` to set options + streaming settings.
+    # Then we can test this!
+    if d1_method.options != d2_method.options:
+        log.debug(  # pragma: no cover
+            "Method options differ! [%s] vs. [%s]", d1_method.options, d2_method.options
+        )
+        return False  # pragma: no cover
+    if d1_method.client_streaming != d2_method.client_streaming:
+        return False  # pragma: no cover
+    if d1_method.server_streaming != d2_method.server_streaming:
+        return False  # pragma: no cover
+    return True
+
+
+def _are_types_similar(type_1: str, type_2: str) -> bool:
+    """Returns true iff type names are the same or differ only by a leading `.`"""
+    # TODO: figure out why when you `json_to_service` the same thing twice, on of the service descriptors ends up with
+    # fully qualified names (.foo.bar.Foo) and the other does not (foo.bar.Foo)
+    return type_1.lstrip(".") == type_2.lstrip(".")
 
 
 def _are_same_message_descriptor(
@@ -290,37 +413,8 @@ def jtd_to_proto(
     if descriptor_pool is None:
         log.debug2("Using default descriptor pool")
         descriptor_pool = _descriptor_pool.Default()
-    try:
-        existing_fd = descriptor_pool.FindFileByName(fd_proto.name)
-        # Rebuild the file descriptor proto so that we can compare; there is
-        # almost certainly a more efficient way to compare that avoids this.
-        existing_proto = descriptor_pb2.FileDescriptorProto()
-        existing_fd.CopyToProto(existing_proto)
-        # Raise if the file exists already with different content
-        # Otherwise, do not attempt to re-add the file
-        if not _are_same_file_descriptors(fd_proto, existing_proto):
-            # NOTE: This is a TypeError because that is what you get most of the time when you
-            # have conflict issues in the descriptor pool arising from JTD to Proto followed by
-            # importing differing defs for the same top level message type using different file
-            # names (i.e., skipping this validation) compiled by protoc. Raising TypeError here
-            # ensures that we at least usually raise the same error type regardless of
-            # import / operation order.
-            raise TypeError(
-                f"Cannot add new file {fd_proto.name} to descriptor pool, file already exists with different content"
-            )
-    except KeyError:
-        # It's okay for the file to not already exist, we'll add it!
-        try:
-            descriptor_pool.Add(fd_proto)
-        except TypeError as e:
-            # More likely than not, this is a duplicate symbol; the main case in which
-            # this could occur is when you've compiled files with protoc, added them to your
-            # descriptor pool, and ALSO added the defs in your jtd_to_proto schema, but the
-            # lookup validation with fd_proto.name is skipped because the .proto file fed to
-            # protoc had a different name!
-            raise TypeError(
-                f"Failed to add {fd_proto.name} to descriptor pool with error: [{e}]; Hint: if you previously used protoc to compile this definition, you must recompile it with the name {fd_proto.name} to avoid the conflict."
-            )
+
+    _safe_add_fd_to_pool(fd_proto, descriptor_pool)
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
