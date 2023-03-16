@@ -256,11 +256,7 @@ def _are_types_similar(type_1: str, type_2: str) -> bool:
     """Returns true iff type names are the same or differ only by a leading `.`"""
     # TODO: figure out why when you `json_to_service` the same thing twice, on of the service descriptors ends up with
     # fully qualified names (.foo.bar.Foo) and the other does not (foo.bar.Foo)
-    if type_1 == type_2:
-        return True
-    if type_1.lstrip(".") == type_2.lstrip("."):
-        return True
-    return False
+    return type_1.lstrip(".") == type_2.lstrip(".")
 
 
 def _are_same_message_descriptor(

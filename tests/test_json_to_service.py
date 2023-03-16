@@ -155,45 +155,82 @@ def test_duplicate_services_are_okay(temp_dpool, foo_message, bar_message):
     assert service_descriptor == another_service_descriptor
 
 
-def test_multiple_services_with_the_same_name_are_not_okay(
-    temp_dpool, foo_message, bar_message
-):
-    """Ensure that json can be converted to service descriptor"""
-
-    service_json = {
-        "service": {
-            "rpcs": [
-                {
-                    "name": "FooTrain",
-                    "input_type": "foo.bar.Foo",
-                    "output_type": "foo.bar.Bar",
-                }
-            ]
-        }
+ORIGINAL_SERVICE = {
+    "service": {
+        "rpcs": [
+            {
+                "name": "FooTrain",
+                "input_type": "foo.bar.Foo",
+                "output_type": "foo.bar.Bar",
+            }
+        ]
     }
-    json_to_service(
-        package="foo.bar",
-        name="FooService",
-        json_service_def=service_json,
-        descriptor_pool=temp_dpool,
-    )
-
-    different_service_json = {
+}
+INVALID_DUPLICATE_SERVICES = [
+    {
         "service": {
             "rpcs": [
                 {
-                    "name": "FooPredict",
+                    "name": "FooPredict",  # Different method name
                     "input_type": "foo.bar.Foo",
                     "output_type": "foo.bar.Foo",
                 }
             ]
         }
+    },
+    {
+        "service": {
+            "rpcs": [ # Different number of methods
+                {
+                    "name": "FooPredict",  # Different method name
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Foo",
+                }
+            ]
+        }
+    },
+    {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Bar", # Different input
+                    "output_type": "foo.bar.Bar",
+                }
+            ]
+        }
+    },
+    {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Foo", # Different output
+                }
+            ]
+        }
     }
+]
+
+@pytest.mark.parametrize("schema", INVALID_DUPLICATE_SERVICES)
+def test_multiple_services_with_the_same_name_are_not_okay(
+    schema, temp_dpool, foo_message, bar_message
+):
+    """Ensure that json can be converted to service descriptor"""
+
+    json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=ORIGINAL_SERVICE,
+        descriptor_pool=temp_dpool,
+    )
+
     with pytest.raises(TypeError):
         json_to_service(
             package="foo.bar",
             name="FooService",
-            json_service_def=different_service_json,
+            json_service_def=schema,
             descriptor_pool=temp_dpool,
         )
 
