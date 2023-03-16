@@ -119,6 +119,85 @@ def test_json_to_service_descriptor(temp_dpool, foo_message, bar_message):
     assert len(service_descriptor.methods) == 2
 
 
+def test_duplicate_services_are_okay(temp_dpool, foo_message, bar_message):
+    """Ensure that json can be converted to service descriptor multiple times"""
+
+    service_json = {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
+                },
+                {
+                    "name": "FooPredict",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Foo",
+                },
+            ]
+        }
+    }
+    # _descriptor.ServiceDescriptor
+    service_descriptor = json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
+    )
+
+    another_service_descriptor = json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
+    )
+    assert service_descriptor == another_service_descriptor
+
+
+def test_multiple_services_with_the_same_name_are_not_okay(
+    temp_dpool, foo_message, bar_message
+):
+    """Ensure that json can be converted to service descriptor"""
+
+    service_json = {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
+                }
+            ]
+        }
+    }
+    json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
+    )
+
+    different_service_json = {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooPredict",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Foo",
+                }
+            ]
+        }
+    }
+    with pytest.raises(TypeError):
+        json_to_service(
+            package="foo.bar",
+            name="FooService",
+            json_service_def=different_service_json,
+            descriptor_pool=temp_dpool,
+        )
+
+
 def test_json_to_service_input_validation(temp_dpool, foo_message):
     """Make sure that an error is raised if the service definition is invalid"""
     # This def is missing the `input_type` field
