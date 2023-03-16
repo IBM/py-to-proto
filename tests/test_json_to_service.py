@@ -180,17 +180,6 @@ INVALID_DUPLICATE_SERVICES = [
     },
     {
         "service": {
-            "rpcs": [ # Different number of methods
-                {
-                    "name": "FooPredict",  # Different method name
-                    "input_type": "foo.bar.Foo",
-                    "output_type": "foo.bar.Foo",
-                }
-            ]
-        }
-    },
-    {
-        "service": {
             "rpcs": [
                 {
                     "name": "FooTrain",

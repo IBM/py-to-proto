@@ -193,7 +193,9 @@ def _check_service_desc_alignment(
     )
     # Ensure that our service names are the same set
     if d1_service_descs.keys() != d2_service_descs.keys():
-        return False
+        # Excluding from code coverage: We can't actually generate file descriptors with multiple services in them.
+        # But, this check seems pretty basic and worth leaving in if this ever gets extended in the future.
+        return False # pragma: no cover
 
     # For every service, ensure that every method is the same
     for svc_name in d1_service_descs.keys():
@@ -209,8 +211,7 @@ def _are_same_service_descriptor(
     d1_service: descriptor_pb2.ServiceDescriptorProto,
     d2_service: descriptor_pb2.ServiceDescriptorProto,
 ) -> bool:
-    if d1_service.name != d2_service.name:
-        return False
+    # Not checking service.name because we only compare services with the same name
 
     d1_methods = {method.name: method for method in d1_service.method}
     d2_methods = {method.name: method for method in d2_service.method}
@@ -234,21 +235,23 @@ def _are_same_method_descriptor(
     d1_method: descriptor_pb2.MethodDescriptorProto,
     d2_method: descriptor_pb2.MethodDescriptorProto,
 ) -> bool:
-    if d1_method.name != d2_method.name:
-        return False
+    # Not checking method.name because we only compare services with the same name
+
     if not _are_types_similar(d1_method.input_type, d2_method.input_type):
         return False
     if not _are_types_similar(d1_method.output_type, d2_method.output_type):
         return False
+    # TODO: Add the ability for `json_to_service` to set options + streaming settings.
+    # Then we can test this!
     if d1_method.options != d2_method.options:
-        log.debug(
+        log.debug(  # pragma: no cover
             "Method options differ! [%s] vs. [%s]", d1_method.options, d2_method.options
         )
-        return False
+        return False  # pragma: no cover
     if d1_method.client_streaming != d2_method.client_streaming:
-        return False
+        return False  # pragma: no cover
     if d1_method.server_streaming != d2_method.server_streaming:
-        return False
+        return False  # pragma: no cover
     return True
 
 
