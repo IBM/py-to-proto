@@ -1,2 +1,2 @@
-protobuf>=3.20.*,<5
+protobuf>=3.20.0,<5
 alchemy-logging>=1.0.3
