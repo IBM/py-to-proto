@@ -10,11 +10,17 @@ import pytest
 import alog
 
 # Local
+from jtd_to_proto.jtd_to_proto import jtd_to_proto
 from jtd_to_proto.validation import _validate_jtd_impl, is_valid_jtd, validate_jtd
 
 log = alog.use_channel("TEST")
 
 ## is_valid_jtd ################################################################
+
+SampleDescriptor = jtd_to_proto(
+    "Sample", "foo.bar", {"properties": {"foo": {"type": "string"}}}
+)
+
 
 VALID_SCHEMAS = [
     # Empty
@@ -36,6 +42,7 @@ VALID_SCHEMAS = [
     },
     # Type
     {"type": "uint8"},
+    {"type": SampleDescriptor},
     # Enum
     {"enum": ["PENDING", "IN_PROGRESS", "DONE"]},
     # Elements

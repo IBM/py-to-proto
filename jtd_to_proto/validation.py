@@ -7,6 +7,9 @@ https://www.rfc-editor.org/rfc/rfc8927
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
+# Third Party
+from google.protobuf import descriptor as _descriptor
+
 # First Party
 import alog
 
@@ -144,7 +147,13 @@ def _is_valid_jtd_impl(
     # Type (2.2.3)
     if schema_keys == {"type"}:
         type_val = schema["type"]
-        if not isinstance(type_val, str) or (type_val not in valid_types):
+        if (
+            # All protobuf descriptors are "special" cases
+            not isinstance(type_val, _descriptor.Descriptor)
+            and
+            # All non-descriptor types must be valid types
+            (not isinstance(type_val, str) or (type_val not in valid_types))
+        ):
             log.debug4("Invalid jtd: Bad type <%s>", type_val)
             return False
         return True
