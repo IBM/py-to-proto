@@ -40,9 +40,16 @@ def descriptor_to_message_class(
 
     # Handle message descriptors
     else:
-        message_class = reflection.message_factory.MessageFactory().GetPrototype(
-            descriptor
-        )
+        # Check to see whether this descriptor already has a concrete class.
+        # NOTE: The MessageFactory already does this for newer versions of
+        #   proto, but in order to maintain compatibility with older versions,
+        #   this is needed here.
+        try:
+            message_class = descriptor._concrete_class
+        except (TypeError, SystemError):
+            message_class = reflection.message_factory.MessageFactory().GetPrototype(
+                descriptor
+            )
 
         # Recursively add nested messages
         for nested_message_descriptor in descriptor.nested_types:
