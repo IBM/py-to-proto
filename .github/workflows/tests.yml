@@ -81,3 +81,13 @@ jobs:
                   docker build . --target=test --build-arg BASE_IMAGE=python-ppa --build-arg RUN_FMT=false
               env:
                   PYTHON_VERSION: "3.10"
+
+    # Builds to validate alternate versions of protobuf
+    build-38-pb319:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: Run unit tests
+              run: docker build . --target=test --build-arg PYTHON_VERSION=${PYTHON_VERSION} --build-arg PROTOBUF_VERSION=">=3.19.0,<3.20"
+              env:
+                  PYTHON_VERSION: "3.8"
