@@ -129,6 +129,8 @@ def _add_protobuf_serializers(
 
         def write_proto_file(first_arg, root_dir: str = "."):
             "Write out the proto file to the target directory"
+            if not os.path.exists(root_dir):
+                os.mkdir(root_dir)
             with open(
                 os.path.join(root_dir, first_arg.DESCRIPTOR.file.name), "w"
             ) as handle:
