@@ -46,7 +46,7 @@ def descriptor_to_message_class(
         #   this is needed here.
         try:
             message_class = descriptor._concrete_class
-        except (TypeError, SystemError):
+        except (TypeError, SystemError, AttributeError):
             message_class = reflection.message_factory.MessageFactory().GetPrototype(
                 descriptor
             )
