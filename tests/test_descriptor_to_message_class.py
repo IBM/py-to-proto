@@ -86,6 +86,34 @@ def test_descriptor_to_message_class_write_proto_file(temp_dpool):
         assert f'import "{Foo.DESCRIPTOR.file.name}"' in bar_content
 
 
+def test_descriptor_to_message_class_write_proto_file_no_dir(temp_dpool):
+    """Make sure that each message class has write_proto_files attached to it
+    and that it correctly writes the protobufs to the right named files.
+    Also ensures that the directory gets created if it doesn't exist
+    """
+    Foo = descriptor_to_message_class(
+        jtd_to_proto(
+            name="Foo",
+            package="foobar",
+            jtd_def={
+                "properties": {
+                    "foo": {
+                        "type": "boolean",
+                    },
+                }
+            },
+            descriptor_pool=temp_dpool,
+        )
+    )
+
+    with tempfile.TemporaryDirectory() as workdir:
+        protos_dir_path = os.path.join(workdir, "protos")
+        Foo.write_proto_file(protos_dir_path)
+        assert set(os.listdir(protos_dir_path)) == {
+            Foo.DESCRIPTOR.file.name,
+        }
+
+
 def test_descriptor_to_message_class_nested_messages(temp_dpool):
     """Make sure that nested messages are wrapped and added to the parents"""
     top = descriptor_to_message_class(
