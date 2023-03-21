@@ -91,3 +91,11 @@ jobs:
               run: docker build . --target=test --build-arg PYTHON_VERSION=${PYTHON_VERSION} --build-arg PROTOBUF_VERSION=">=3.19.0,<3.20"
               env:
                   PYTHON_VERSION: "3.8"
+    build-38-pb320:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: Run unit tests
+              run: docker build . --target=test --build-arg PYTHON_VERSION=${PYTHON_VERSION} --build-arg PROTOBUF_VERSION=">=3.20.0,<3.21"
+              env:
+                  PYTHON_VERSION: "3.8"
