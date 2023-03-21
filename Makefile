@@ -22,10 +22,14 @@ wheel: ## Build release wheels
 ##@ Develop
 
 PYTHON_VERSION ?= 3.8
+PROTOBUF_VERSION ?=
 
 .PHONY: develop.build
 develop.build: ## Build the development environment container
-	docker build . --target=base -t jtd-to-proto-develop --build-arg PYTHON_VERSION=${PYTHON_VERSION}
+	docker build . --target=base \
+		-t jtd-to-proto-develop \
+		--build-arg PYTHON_VERSION=${PYTHON_VERSION} \
+		--build-arg PROTOBUF_VERSION="${PROTOBUF_VERSION}"
 
 .PHONY: develop
 develop:	develop.build ## Run the develop shell with the local codebase mounted

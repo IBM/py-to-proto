@@ -5,6 +5,7 @@
 ARG PYTHON_VERSION=3.7
 ARG BASE_IMAGE=python:${PYTHON_VERSION}-slim
 FROM ${BASE_IMAGE} as base
+ARG PROTOBUF_VERSION=""
 
 # This image is only for building, so we run as root
 WORKDIR /src
@@ -20,6 +21,10 @@ RUN true && \
     pip install twine pre-commit && \
     pip install -r /src/requirements.txt && \
     pip install -r /src/requirements_test.txt && \
+    if [ "$PROTOBUF_VERSION" != "" ]; then \
+        pip uninstall -y protobuf grpcio-tools && \
+        pip install "protobuf${PROTOBUF_VERSION}" grpcio-tools; \
+    fi && \
     true
 
 ## Test ########################################################################
