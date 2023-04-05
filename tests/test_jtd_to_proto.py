@@ -548,7 +548,14 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
     # Validate nested descriptors
     assert not descriptor.nested_types
     assert not descriptor.enum_types
-    assert not descriptor.oneofs
+    # The one optional property will have its field nested inside a `oneof` as well
+    assert len(descriptor.oneofs) == 1
+    # The oneof's name has a leading underscore
+    assert descriptor.oneofs[0].name == "_metoo"
+    assert descriptor.oneofs[0].full_name == ".".join([descriptor.full_name, "_metoo"])
+    # This `oneof` is a bit degenerate: it only contains the single field.
+    # It's only used to check if the field was supplied or not
+    assert len(descriptor.oneofs[0].fields) == 1
 
     # Validate fields
     fields = dict(descriptor.fields_by_name)
@@ -557,6 +564,9 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
     assert fields["foo"].label == fields["foo"].LABEL_OPTIONAL
     assert fields["metoo"].type == fields["metoo"].TYPE_STRING
     assert fields["metoo"].label == fields["metoo"].LABEL_OPTIONAL
+
+    # Make sure the optional field has the same field descriptor at the top level of the message and in the oneof
+    assert fields["metoo"] is descriptor.oneofs[0].fields[0]
 
 
 def test_jtd_to_proto_top_level_enum(temp_dpool):

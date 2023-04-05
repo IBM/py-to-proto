@@ -2,6 +2,7 @@
 htmlcov
 __pycache__
 *.egg-info/
+build/
 dist/
 .DS_Store
 .pytest_cache
