@@ -550,7 +550,7 @@ def _jtd_to_proto_impl(
     all_properties = dict(**properties, **optional_properties)
     additional_properties = jtd_def.get("additionalProperties")
     if all_properties or additional_properties:
-        field_descriptors = []
+        field_descriptors: List[descriptor_pb2.FieldDescriptorProto] = []
         nested_enums = []
         nested_messages = []
         nested_oneofs = []
@@ -725,6 +725,19 @@ def _jtd_to_proto_impl(
             )
             imports.append(struct_pb2.Struct.DESCRIPTOR.file.name)
 
+        # Support optional properties as oneofs i.e. optional int32 foo = 1;
+        # becomes interpreted as oneof _foo { int32 foo = 1; }
+        optional_oneofs: List[descriptor_pb2.OneofDescriptorProto] = []
+        for field in field_descriptors:
+            if field.name in optional_properties.keys():
+                # OneofDescriptorProto do not contain fields themselves. Instead the
+                # FieldDescriptorProto must contain the index of the oneof inside the
+                # DescriptorProto
+                optional_oneofs.append(
+                    descriptor_pb2.OneofDescriptorProto(name=f"_{field.name}")
+                )
+                field.oneof_index = len(nested_oneofs) + len(optional_oneofs) - 1
+
         # Construct the message descriptor
         log.debug3(
             "All field descriptors for [%s]:\n%s", message_name, field_descriptors
@@ -734,6 +747,6 @@ def _jtd_to_proto_impl(
             field=field_descriptors,
             enum_type=nested_enums,
             nested_type=nested_messages,
-            oneof_decl=nested_oneofs,
+            oneof_decl=nested_oneofs + optional_oneofs,
         )
         return descriptor_proto

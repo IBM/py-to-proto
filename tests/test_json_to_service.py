@@ -35,8 +35,10 @@ def foo_message(temp_dpool):
             {
                 "properties": {
                     "foo": {"type": "boolean"},
+                },
+                "optionalProperties": {
                     "bar": {"type": "float32"},
-                }
+                },
             },
             descriptor_pool=temp_dpool,
         )
@@ -311,6 +313,11 @@ def test_end_to_end_integration(foo_message, bar_message, foo_service_descriptor
         """gRPC Service Impl"""
 
         def FooPredict(self, request, context):
+            # Test that the `optionalProperty` "bar" of the request can be checked for existence
+            if request.foo:
+                assert request.HasField("bar")
+            else:
+                assert not request.HasField("bar")
             return bar_message(boo=42, baz=True)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
@@ -321,12 +328,18 @@ def test_end_to_end_integration(foo_message, bar_message, foo_service_descriptor
     # Create the client-side connection
     chan = grpc.insecure_channel("localhost:9001")
     my_stub = stub_class(chan)
-    input = foo_message(foo=False, bar=-9000)
+    # nb: we'll set "foo" to the existence of "bar" to put asserts in the request handler
+    input = foo_message(foo=True, bar=-9000)
 
     # Make a gRPC call
     response = my_stub.FooPredict(request=input)
     assert isinstance(response, bar_message)
     assert response.boo == 42
     assert response.baz
+
+    # Test that we can not set `bar` and correctly check that it was not set on the server side
+    input = foo_message(foo=False)
+    response = my_stub.FooPredict(request=input)
+    assert isinstance(response, bar_message)
 
     server.stop(grace=0)
