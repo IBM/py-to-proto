@@ -551,9 +551,9 @@ def _jtd_to_proto_impl(
     additional_properties = jtd_def.get("additionalProperties")
     if all_properties or additional_properties:
         field_descriptors: List[descriptor_pb2.FieldDescriptorProto] = []
-        nested_enums = []
-        nested_messages = []
-        nested_oneofs = []
+        nested_enums: List[descriptor_pb2.EnumDescriptorProto] = []
+        nested_messages: List[descriptor_pb2.DescriptorProto] = []
+        nested_oneofs: List[descriptor_pb2.OneofDescriptorProto] = []
 
         # Iterate each field and perform the recursive conversion
         for field_index, (field_name, field_def) in enumerate(all_properties.items()):
