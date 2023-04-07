@@ -566,7 +566,7 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
 
     # Validate fields
     fields = dict(descriptor.fields_by_name)
-    assert list(fields.keys()) == ["foo", "optionalFoo"]
+    assert list(fields.keys()) == ["foo", "optionalFoo", "optionalList"]
     assert fields["foo"].type == fields["foo"].TYPE_BOOL
     assert fields["foo"].label == fields["foo"].LABEL_OPTIONAL
     assert fields["optionalFoo"].type == fields["optionalFoo"].TYPE_STRING

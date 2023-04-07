@@ -212,8 +212,8 @@ def _field_descriptor_to_file(
         and field_descriptor.label == field_descriptor.LABEL_REPEATED
     ):
         field_line += "repeated "
-    # elif optional:
-        # field_line += "optional "
+    if field_descriptor.containing_oneof and len(field_descriptor.containing_oneof.fields) == 1 and field_descriptor.containing_oneof.name.startswith("_"):
+        field_line += "optional "
 
     # Add the type
     field_line += _get_field_type_str(field_descriptor)

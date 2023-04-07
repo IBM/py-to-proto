@@ -264,9 +264,9 @@ def test_descriptor_to_file_optional_properties(temp_dpool):
         )
     )
     # Non-array things in `optionalProperties` should have `optional`
-    assert any("optional string optionalString" in line for line in raw_protobuf)
+    assert any("optional string optionalString" in line for line in raw_protobuf), f"optionalString not in {raw_protobuf}"
     # But fields cannot be both `repeated` and `optional`
-    assert any("repeated string optionalList" in line for line in raw_protobuf)
+    assert any("repeated string optionalList" in line for line in raw_protobuf), f"optionalList broken in {raw_protobuf}"
 
 
 def test_descriptor_to_file_service_descriptor(temp_dpool):
