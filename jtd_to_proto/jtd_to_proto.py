@@ -729,7 +729,10 @@ def _jtd_to_proto_impl(
         # becomes interpreted as oneof _foo { int32 foo = 1; }
         optional_oneofs: List[descriptor_pb2.OneofDescriptorProto] = []
         for field in field_descriptors:
-            if field.name in optional_properties.keys() and field.label == _descriptor.FieldDescriptor.LABEL_OPTIONAL:
+            if (
+                field.name in optional_properties.keys()
+                and field.label == _descriptor.FieldDescriptor.LABEL_OPTIONAL
+            ):
                 # OneofDescriptorProto do not contain fields themselves. Instead the
                 # FieldDescriptorProto must contain the index of the oneof inside the
                 # DescriptorProto

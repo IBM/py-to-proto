@@ -169,15 +169,27 @@ def _message_descriptor_to_file(
         lines.append(PROTO_FILE_FIELD_HEADER)
     for field_descriptor in message_descriptor.fields:
         # If the field is part of a oneof, defer it until adding oneofs
-        if field_descriptor.containing_oneof:
+        # Unless the oneof is internal bookkeeping for an optional field
+        if field_descriptor.containing_oneof and not _is_optional_field_oneof(
+            field_descriptor.containing_oneof
+        ):
             continue
         lines.extend(_field_descriptor_to_file(field_descriptor, indent=1))
 
     # Add oneofs
-    if message_descriptor.oneofs:
+    oneofs = (
+        [
+            oneof
+            for oneof in message_descriptor.oneofs
+            if not _is_optional_field_oneof(oneof)
+        ]
+        if message_descriptor.oneofs
+        else []
+    )
+    if oneofs:
         lines.append("")
         lines.append(PROTO_FILE_ONEOF_HEADER)
-    for oneof_descriptor in message_descriptor.oneofs:
+    for oneof_descriptor in oneofs:
         lines.extend(_oneof_descriptor_to_file(oneof_descriptor, indent=1))
 
     lines.append("}")
@@ -212,7 +224,11 @@ def _field_descriptor_to_file(
         and field_descriptor.label == field_descriptor.LABEL_REPEATED
     ):
         field_line += "repeated "
-    if field_descriptor.containing_oneof and len(field_descriptor.containing_oneof.fields) == 1 and field_descriptor.containing_oneof.name.startswith("_"):
+    if (
+        field_descriptor.containing_oneof
+        and len(field_descriptor.containing_oneof.fields) == 1
+        and field_descriptor.containing_oneof.name.startswith("_")
+    ):
         field_line += "optional "
 
     # Add the type
@@ -262,3 +278,9 @@ def _is_map_entry(message_descriptor: _descriptor.Descriptor) -> bool:
     return message_descriptor is not None and getattr(
         message_descriptor.GetOptions(), "map_entry", False
     )
+
+
+def _is_optional_field_oneof(oneof_descriptor: _descriptor.OneofDescriptor):
+    """Check whether the oneof is an internal detail for dealing with an optional
+    field, rather than an explicit oneof in the message description"""
+    return len(oneof_descriptor.fields) == 1 and oneof_descriptor.name.startswith("_")

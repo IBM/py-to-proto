@@ -536,11 +536,7 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
                 "optionalFoo": {
                     "type": "string",
                 },
-                "optionalList": {
-                    "elements": {
-                        "type": "string"
-                    }
-                }
+                "optionalList": {"elements": {"type": "string"}},
             },
         },
         descriptor_pool=temp_dpool,
@@ -559,7 +555,9 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
     assert len(descriptor.oneofs) == 1
     # The oneof's name has a leading underscore
     assert descriptor.oneofs[0].name == "_optionalFoo"
-    assert descriptor.oneofs[0].full_name == ".".join([descriptor.full_name, "_optionalFoo"])
+    assert descriptor.oneofs[0].full_name == ".".join(
+        [descriptor.full_name, "_optionalFoo"]
+    )
     # This `oneof` is a bit degenerate: it only contains the single field.
     # It's only used to check if the field was supplied or not
     assert len(descriptor.oneofs[0].fields) == 1
