@@ -226,10 +226,7 @@ def _field_descriptor_to_file(
         field_line += "repeated "
 
     # Add the optional qualifier if needed
-    if (
-        field_descriptor.containing_oneof
-        and _is_optional_field_oneof(field_descriptor.containing_oneof)
-    ):
+    if _is_optional_field_oneof(field_descriptor.containing_oneof):
         field_line += "optional "
 
     # Add the type
@@ -284,4 +281,8 @@ def _is_map_entry(message_descriptor: _descriptor.Descriptor) -> bool:
 def _is_optional_field_oneof(oneof_descriptor: Optional[_descriptor.OneofDescriptor]):
     """Check whether the oneof is an internal detail for dealing with an optional
     field, rather than an explicit oneof in the message description"""
-    return oneof_descriptor and len(oneof_descriptor.fields) == 1 and oneof_descriptor.name.startswith("_")
+    return (
+        oneof_descriptor
+        and len(oneof_descriptor.fields) == 1
+        and oneof_descriptor.name.startswith("_")
+    )
