@@ -281,7 +281,7 @@ def _is_map_entry(message_descriptor: _descriptor.Descriptor) -> bool:
     )
 
 
-def _is_optional_field_oneof(oneof_descriptor: _descriptor.OneofDescriptor):
+def _is_optional_field_oneof(oneof_descriptor: Optional[_descriptor.OneofDescriptor]):
     """Check whether the oneof is an internal detail for dealing with an optional
     field, rather than an explicit oneof in the message description"""
-    return len(oneof_descriptor.fields) == 1 and oneof_descriptor.name.startswith("_")
+    return oneof_descriptor and len(oneof_descriptor.fields) == 1 and oneof_descriptor.name.startswith("_")
