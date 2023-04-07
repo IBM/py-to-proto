@@ -115,9 +115,16 @@ sample_jtd_def = jtd_def = {
     },
     # optionalProperties are also handled as properties
     "optionalProperties": {
-        "metoo": {
+        # Optional primitive
+        "optionalString": {
             "type": "string",
-        }
+        },
+        # Optional array
+        "optionalList": {
+            "elements": {
+                "type": "string",
+            }
+        },
     },
 }
 
@@ -243,6 +250,30 @@ def test_descriptor_to_file_enum_descriptor(temp_dpool):
     )
     res = descriptor_to_file(enum_descriptor)
     assert "enum Foo {" in res
+
+
+def test_descriptor_to_file_optional_properties(temp_dpool):
+    """Make sure descriptor_to_file sticks `optional` in front of optional fields"""
+    raw_protobuf = descriptor_to_file(
+        jtd_to_proto(
+            "Widgets",
+            "foo.bar.baz.bat",
+            sample_jtd_def,
+            descriptor_pool=temp_dpool,
+            validate_jtd=True,
+        )
+    )
+    raw_protobuf_lines = raw_protobuf.splitlines()
+    # Non-array things in `optionalProperties` should have `optional`
+    assert any(
+        "optional string optionalString" in line for line in raw_protobuf_lines
+    ), f"optionalString not in {raw_protobuf}"
+    # But fields cannot be both `repeated` and `optional`
+    assert any(
+        "repeated string optionalList" in line for line in raw_protobuf_lines
+    ), f"optionalList broken in {raw_protobuf}"
+    # Additionally, check that the internal oneof was not rendered
+    assert "_optionalString" not in raw_protobuf
 
 
 def test_descriptor_to_file_service_descriptor(temp_dpool):

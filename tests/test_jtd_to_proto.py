@@ -533,9 +533,10 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
                 },
             },
             "optionalProperties": {
-                "metoo": {
+                "optionalFoo": {
                     "type": "string",
-                }
+                },
+                "optionalList": {"elements": {"type": "string"}},
             },
         },
         descriptor_pool=temp_dpool,
@@ -548,25 +549,29 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
     # Validate nested descriptors
     assert not descriptor.nested_types
     assert not descriptor.enum_types
-    # The one optional property will have its field nested inside a `oneof` as well
+    # The optional property will have its field nested inside a `oneof` as well
+    # 🌶️🌶️🌶️ Only the `optionalFoo` field gets this special `oneof`.
+    # Repeated fields (optionalList) do not get the nested oneof wrapping
     assert len(descriptor.oneofs) == 1
     # The oneof's name has a leading underscore
-    assert descriptor.oneofs[0].name == "_metoo"
-    assert descriptor.oneofs[0].full_name == ".".join([descriptor.full_name, "_metoo"])
+    assert descriptor.oneofs[0].name == "_optionalFoo"
+    assert descriptor.oneofs[0].full_name == ".".join(
+        [descriptor.full_name, "_optionalFoo"]
+    )
     # This `oneof` is a bit degenerate: it only contains the single field.
     # It's only used to check if the field was supplied or not
     assert len(descriptor.oneofs[0].fields) == 1
 
     # Validate fields
     fields = dict(descriptor.fields_by_name)
-    assert list(fields.keys()) == ["foo", "metoo"]
+    assert list(fields.keys()) == ["foo", "optionalFoo", "optionalList"]
     assert fields["foo"].type == fields["foo"].TYPE_BOOL
     assert fields["foo"].label == fields["foo"].LABEL_OPTIONAL
-    assert fields["metoo"].type == fields["metoo"].TYPE_STRING
-    assert fields["metoo"].label == fields["metoo"].LABEL_OPTIONAL
+    assert fields["optionalFoo"].type == fields["optionalFoo"].TYPE_STRING
+    assert fields["optionalFoo"].label == fields["optionalFoo"].LABEL_OPTIONAL
 
     # Make sure the optional field has the same field descriptor at the top level of the message and in the oneof
-    assert fields["metoo"] is descriptor.oneofs[0].fields[0]
+    assert fields["optionalFoo"] is descriptor.oneofs[0].fields[0]
 
 
 def test_jtd_to_proto_top_level_enum(temp_dpool):
