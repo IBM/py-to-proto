@@ -4,7 +4,7 @@ This module implements serialization of an in-memory Descriptor to a portable
 """
 
 # Standard
-from typing import List, Union
+from typing import List, Optional, Union
 
 # Third Party
 from google.protobuf import descriptor as _descriptor
