@@ -224,10 +224,11 @@ def _field_descriptor_to_file(
         and field_descriptor.label == field_descriptor.LABEL_REPEATED
     ):
         field_line += "repeated "
+
+    # Add the optional qualifier if needed
     if (
         field_descriptor.containing_oneof
-        and len(field_descriptor.containing_oneof.fields) == 1
-        and field_descriptor.containing_oneof.name.startswith("_")
+        and _is_optional_field_oneof(field_descriptor.containing_oneof)
     ):
         field_line += "optional "
 
