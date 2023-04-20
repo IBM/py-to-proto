@@ -10,7 +10,8 @@ import pytest
 
 # Local
 from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import _to_upper_camel, jtd_to_proto
+from jtd_to_proto.jtd_to_proto import jtd_to_proto
+from jtd_to_proto.utils import to_upper_camel
 
 ## Happy Path ##################################################################
 
@@ -1158,6 +1159,6 @@ def test_protoc_collision_different_def_jtd_to_proto_last(temp_dpool):
 ## Details #####################################################################
 
 
-def test_to_upper_camel_empty():
-    """Make sure _to_upper_camel is safe with an empty string"""
-    assert _to_upper_camel("") == ""
+def testto_upper_camel_empty():
+    """Make sure to_upper_camel is safe with an empty string"""
+    assert to_upper_camel("") == ""

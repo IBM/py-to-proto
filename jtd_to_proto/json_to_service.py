@@ -21,7 +21,7 @@ from .descriptor_to_message_class import (
     _add_protobuf_serializers,
     descriptor_to_message_class,
 )
-from .jtd_to_proto import _safe_add_fd_to_pool
+from .utils import safe_add_fd_to_pool
 from .validation import JTD_TYPE_VALIDATORS, validate_jtd
 
 log = alog.use_channel("JSON2S")
@@ -128,7 +128,7 @@ def json_to_service(
 
     # Add the FileDescriptorProto to the Descriptor Pool
     log.debug("Adding Descriptors to DescriptorPool")
-    _safe_add_fd_to_pool(fd_proto, descriptor_pool)
+    safe_add_fd_to_pool(fd_proto, descriptor_pool)
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
