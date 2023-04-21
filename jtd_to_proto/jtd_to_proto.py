@@ -149,7 +149,7 @@ class JTDConverter(ConverterBase):
             string_type = self.type_mapping.get("string")
             if string_type is None:
                 raise ValueError(
-                    "Provided type mapping has no key for 'string', so discriminators cannot be used"
+                    "Provided type mapping has no key for 'string', so values maps cannot be used"
                 )
             val_type = self._convert(entry=values, name="value")
             return (string_type, val_type)
