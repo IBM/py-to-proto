@@ -142,7 +142,7 @@ class JTDConverter(ConverterBase):
     def get_map_key_val_types(
         self,
         entry: _JtdDefType,
-    ) -> Optional[Tuple[int, Union[int, _descriptor.Descriptor]]]:
+    ) -> Optional[Tuple[int, ConverterBase.ConvertOutputTypes]]:
         """Get the key and value types for a given map type"""
         values = entry.get("values")
         if values is not None:

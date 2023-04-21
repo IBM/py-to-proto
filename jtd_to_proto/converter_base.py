@@ -36,6 +36,21 @@ _DescriptorTypesUnion = Union[_descriptor.Descriptor, _descriptor.EnumDescriptor
 class ConverterBase(Generic[T], abc.ABC):
     __doc__ = __doc__
 
+    # Types that can be returned from _convert. This is exposed as public so
+    # that derived converters can reference it
+    ConvertOutputTypes = Union[
+        # Concrete type
+        int,
+        # Message descriptor reference
+        _descriptor.Descriptor,
+        # Enum descriptor reference
+        _descriptor.EnumDescriptor,
+        # Nested message
+        descriptor_pb2.DescriptorProto,
+        # Nested enum
+        descriptor_pb2.EnumDescriptorProto,
+    ]
+
     def __init__(
         self,
         name: str,
@@ -133,7 +148,7 @@ class ConverterBase(Generic[T], abc.ABC):
     def get_map_key_val_types(
         self,
         entry: Any,
-    ) -> Optional[Tuple[int, Union[int, _descriptor.Descriptor]]]:
+    ) -> Optional[Tuple[int, ConvertOutputTypes]]:
         """Get the key and value types for a given map type"""
 
     ## Enums ##
@@ -212,20 +227,7 @@ class ConverterBase(Generic[T], abc.ABC):
         log.debug3("Adding import file %s", import_file)
         self.imports.add(import_file)
 
-    def _convert(
-        self, entry: Any, name: str
-    ) -> Union[
-        # Nested message
-        descriptor_pb2.DescriptorProto,
-        # Nested enum
-        descriptor_pb2.EnumDescriptorProto,
-        # Concrete primitive type enum value
-        int,
-        # Concrete message type reference
-        _descriptor.Descriptor,
-        # Concrete enum type reference
-        _descriptor.EnumDescriptor,
-    ]:
+    def _convert(self, entry: Any, name: str) -> ConvertOutputTypes:
         """This is the core recursive implementation detail function that does
         the common conversion logic for all converters.
         """
