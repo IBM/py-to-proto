@@ -293,6 +293,7 @@ class ConverterBase(Generic[T], abc.ABC):
                 type=key_type,
                 number=1,
             )
+            val_field_kwargs = {}
             msg_descriptor_kwargs = {}
             if isinstance(val_type, int):
                 val_field_kwargs = {"type": val_type}
@@ -318,8 +319,9 @@ class ConverterBase(Generic[T], abc.ABC):
                     "type_name": val_type.name,
                 }
                 msg_descriptor_kwargs["nested_type"] = [val_type]
-            else:
-                raise ValueError(f"Got unhandled map value type: {val_type}")
+            assert (
+                val_field_kwargs
+            ), f"Programming Error: Got unhandled map value type: {val_type}"
             val_field = descriptor_pb2.FieldDescriptorProto(
                 name="value",
                 number=2,
