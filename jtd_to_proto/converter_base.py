@@ -215,10 +215,16 @@ class ConverterBase(Generic[T], abc.ABC):
     def _convert(
         self, entry: Any, name: str
     ) -> Union[
+        # Nested message
         descriptor_pb2.DescriptorProto,
+        # Nested enum
         descriptor_pb2.EnumDescriptorProto,
+        # Concrete primitive type enum value
         int,
-        Tuple[str, int],
+        # Concrete message type reference
+        _descriptor.Descriptor,
+        # Concrete enum type reference
+        _descriptor.EnumDescriptor,
     ]:
         """This is the core recursive implementation detail function that does
         the common conversion logic for all converters.
@@ -239,7 +245,7 @@ class ConverterBase(Generic[T], abc.ABC):
 
         # Handle concrete types
         #
-        # Returns: Union[int, Descriptor]
+        # Returns: Union[int, _descriptor.Descriptor, _descriptor.EnumDescriptor]
         concrete_type = self.get_concrete_type(entry)
         if concrete_type:
             log.debug2("Handling concrete type: %s", concrete_type)
