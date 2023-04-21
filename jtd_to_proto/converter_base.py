@@ -234,15 +234,6 @@ class ConverterBase(Generic[T], abc.ABC):
         message_name = to_upper_camel(name)
         log.debug("Message name: %s", message_name)
 
-        # Handle descriptor references
-        #
-        # Returns: Descriptor
-        descriptor_ref = self.get_descriptor(entry)
-        if descriptor_ref is not None:
-            log.debug2("Handling direct descriptor reference")
-            self._add_descriptor_imports(descriptor_ref)
-            return descriptor_ref
-
         # Handle concrete types
         #
         # Returns: Union[int, _descriptor.Descriptor, _descriptor.EnumDescriptor]
