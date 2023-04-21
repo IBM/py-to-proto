@@ -833,6 +833,67 @@ def test_protoc_collision_same_def(temp_dpool):
     temp_dpool.AddSerializedFile(protoc_sample)
 
 
+def test_map_to_message_reference(temp_dpool):
+    """Test that a map can point to an external message as the value type"""
+    msg_one_desc = jtd_to_proto(
+        name="Foo",
+        package="test.foo.bar",
+        jtd_def={"properties": {"foo": {"type": "int32"}}},
+        descriptor_pool=temp_dpool,
+    )
+    map_ref_desc = jtd_to_proto(
+        name="Bar",
+        package="test.foo.bar",
+        jtd_def={"properties": {"bar": {"values": {"type": msg_one_desc}}}},
+        descriptor_pool=temp_dpool,
+    )
+    assert (
+        map_ref_desc.fields_by_name["bar"]
+        .message_type.fields_by_name["value"]
+        .message_type
+        is msg_one_desc
+    )
+
+
+def test_map_to_enum_reference(temp_dpool):
+    """Test that a map can point to an external enum as the value type"""
+    enum_desc = jtd_to_proto(
+        name="Foo",
+        package="test.foo.bar",
+        jtd_def={"enum": ["FOO", "BAR"]},
+        descriptor_pool=temp_dpool,
+    )
+    map_ref_desc = jtd_to_proto(
+        name="Bar",
+        package="test.foo.bar",
+        jtd_def={"properties": {"bar": {"values": {"type": enum_desc}}}},
+        descriptor_pool=temp_dpool,
+    )
+    assert (
+        map_ref_desc.fields_by_name["bar"]
+        .message_type.fields_by_name["value"]
+        .enum_type
+        is enum_desc
+    )
+
+
+def test_custom_field_number(temp_dpool):
+    """Test that metadata can be used to specify a custom field number"""
+    field_number = 42
+    descriptor = jtd_to_proto(
+        name="CustomFldNum",
+        package="foo.bar",
+        jtd_def={
+            "properties": {
+                "foo": {"type": "int32", "metadata": {"field_number": field_number}}
+            }
+        },
+        validate_jtd=True,
+        descriptor_pool=temp_dpool,
+    )
+    assert descriptor.fields_by_name["foo"].number == field_number
+
+
 ## Error Cases #################################################################
 
 
@@ -1173,23 +1234,6 @@ def test_custom_type_mapping_without_string(temp_dpool):
         )
 
 
-def test_custom_field_number(temp_dpool):
-    """Test that metadata can be used to specify a custom field number"""
-    field_number = 42
-    descriptor = jtd_to_proto(
-        name="CustomFldNum",
-        package="foo.bar",
-        jtd_def={
-            "properties": {
-                "foo": {"type": "int32", "metadata": {"field_number": field_number}}
-            }
-        },
-        validate_jtd=True,
-        descriptor_pool=temp_dpool,
-    )
-    assert descriptor.fields_by_name["foo"].number == field_number
-
-
 def test_bad_custom_type_mapping(temp_dpool):
     """Test that values in a custom type mapping must be int or descriptors"""
     with pytest.raises(ValueError):
@@ -1197,61 +1241,9 @@ def test_bad_custom_type_mapping(temp_dpool):
             name="NoMapsForYou",
             package="test.foo.bar",
             jtd_def={"properties": {"foo": {"type": "int32"}}},
-            type_mapping={"int32": int},
+            type_mapping={"int32": "not a type value"},
             descriptor_pool=temp_dpool,
         )
-
-
-def test_map_to_message_reference(temp_dpool):
-    """Test that a map can point to an external message as the value type"""
-    msg_one_desc = jtd_to_proto(
-        name="Foo",
-        package="test.foo.bar",
-        jtd_def={"properties": {"foo": {"type": "int32"}}},
-        descriptor_pool=temp_dpool,
-    )
-    map_ref_desc = jtd_to_proto(
-        name="Bar",
-        package="test.foo.bar",
-        jtd_def={"properties": {"bar": {"values": {"type": msg_one_desc}}}},
-        descriptor_pool=temp_dpool,
-    )
-    assert (
-        map_ref_desc.fields_by_name["bar"]
-        .message_type.fields_by_name["value"]
-        .message_type
-        is msg_one_desc
-    )
-
-
-def test_map_to_enum_reference(temp_dpool):
-    """Test that a map can point to an external enum as the value type"""
-    enum_desc = jtd_to_proto(
-        name="Foo",
-        package="test.foo.bar",
-        jtd_def={"enum": ["FOO", "BAR"]},
-        descriptor_pool=temp_dpool,
-    )
-    map_ref_desc = jtd_to_proto(
-        name="Bar",
-        package="test.foo.bar",
-        jtd_def={"properties": {"bar": {"values": {"type": enum_desc}}}},
-        descriptor_pool=temp_dpool,
-    )
-    assert (
-        map_ref_desc.fields_by_name["bar"]
-        .message_type.fields_by_name["value"]
-        .enum_type
-        is enum_desc
-    )
-
-
-## Details #####################################################################
-
-
-def testto_upper_camel_empty():
-    """Make sure to_upper_camel is safe with an empty string"""
-    assert to_upper_camel("") == ""
 
 
 def test_call_with_bad_dict():
@@ -1264,3 +1256,11 @@ def test_call_with_bad_dict():
             package="test.foo.bar",
             jtd_def={"not": "valid"},
         )
+
+
+## Details #####################################################################
+
+
+def test_to_upper_camel_empty():
+    """Make sure to_upper_camel is safe with an empty string"""
+    assert to_upper_camel("") == ""
