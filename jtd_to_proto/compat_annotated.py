@@ -15,6 +15,21 @@ except ImportError:
     from typing import get_origin as _get_origin
     import operator
 
+    ############################################################################
+    # The code below retains the copyright from the PSF License Agreement
+    #
+    # Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+    # 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022,
+    # 2023 Python Software Foundation;
+    # All Rights Reserved
+    #
+    # This derivative work has one small change from the original source to
+    # avoid needing to pull more code in. The _type_check invocation inside
+    # Annotated.__class_getitem__ omits the allow_special_forms argument which
+    # is there in the 3.10 version to handle cases that are not relevant to the
+    # usage here and would require further copy-paste porting to support.
+    ############################################################################
+
     class _AnnotatedAlias(_GenericAlias, _root=True):
         """Runtime representation of an annotated type.
 
