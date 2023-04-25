@@ -251,14 +251,14 @@ class DataclassConverter(ConverterBase):
         if get_origin(field_type) is Union:
             union_args = get_args(field_type)
             for arg in union_args:
-                oneof_field_type = self._resolve_annotated_type(arg)
                 oneof_field_name = self._get_unique_annotation(arg, OneofField)
                 if oneof_field_name is None:
+                    res_type = self._resolve_annotated_type(arg)
                     oneof_field_name = (
-                        f"{field_def.name}{str(oneof_field_type.__name__)}".lower()
+                        f"{field_def.name}{str(res_type.__name__)}".lower()
                     )
                     log.debug3("Using default oneof field name: %s", oneof_field_name)
-                oneof_fields.append((oneof_field_name, oneof_field_type))
+                oneof_fields.append((oneof_field_name, arg))
         return oneof_fields
 
     def get_oneof_name(self, field_def: dataclasses.Field) -> str:
