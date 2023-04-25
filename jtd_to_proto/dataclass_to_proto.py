@@ -114,7 +114,7 @@ class DataclassConverter(ConverterBase):
         initialize the parent
         """
         type_mapping = type_mapping or PY_TO_PROTO_TYPES
-        name = name or dataclass_.__name__
+        name = name or getattr(dataclass_, "__name__", "")
         super().__init__(
             name=name,
             package=package,
