@@ -40,6 +40,7 @@ def write_foo_proto(filename: str):
 """
 
 # Local
+from .dataclass_to_proto import dataclass_to_proto
 from .descriptor_to_file import descriptor_to_file
 from .descriptor_to_message_class import descriptor_to_message_class
 from .jtd_to_proto import jtd_to_proto
