@@ -139,11 +139,19 @@ class DataclassConverter(ConverterBase):
 
     def get_concrete_type(self, entry: Any) -> Any:
         """If this is a concrete type, get the type map key for it"""
+        # Unwrap any Annotations
+        entry_type = self._resolve_annotated_type(entry)
+
         # If it's a known type, just return it
-        if entry in self.type_mapping or isinstance(
-            entry, (_descriptor.Descriptor, _descriptor.EnumDescriptor)
+        if entry_type in self.type_mapping or isinstance(
+            entry_type, (_descriptor.Descriptor, _descriptor.EnumDescriptor)
         ):
-            return entry
+            return entry_type
+
+        # If it's a type with a descriptor, return that descriptor
+        descriptor_attr = getattr(entry_type, "DESCRIPTOR", None)
+        if descriptor_attr is not None:
+            return descriptor_attr
 
     ## Maps ##
 
@@ -261,7 +269,7 @@ class DataclassConverter(ConverterBase):
         """Get the type of the field. The definition of type here will be
         specific to the converter (e.g. string for JTD, py type for dataclass)
         """
-        field_type = field_def.type
+        field_type = self._resolve_annotated_type(field_def.type)
         if get_origin(field_type) is list:
             args = get_args(field_type)
             if len(args) == 1:
@@ -270,7 +278,7 @@ class DataclassConverter(ConverterBase):
 
     def is_repeated_field(self, field_def: dataclasses.Field) -> bool:
         """Determine if the given field def is repeated"""
-        return get_origin(field_def.type) is list
+        return get_origin(self._resolve_annotated_type(field_def.type)) is list
 
     ## Implementation Details ##################################################
 
