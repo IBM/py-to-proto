@@ -128,7 +128,9 @@ class DataclassConverter(ConverterBase):
 
     def validate(self, source_schema: type) -> bool:
         """Perform preprocess validation of the input"""
-        if not dataclasses.is_dataclass(source_schema):
+        if not dataclasses.is_dataclass(source_schema) and not (
+            isinstance(source_schema, type) and issubclass(source_schema, Enum)
+        ):
             return False
         # TODO: More validation!
         return True
