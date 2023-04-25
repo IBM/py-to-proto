@@ -91,6 +91,12 @@ class ConverterBase(Generic[T], abc.ABC):
             if not self.validate(source_schema):
                 raise ValueError(f"Invalid Schema: {source_schema}")
 
+        # Figure out which descriptor pool to use
+        if descriptor_pool is None:
+            log.debug2("Using default descriptor pool")
+            descriptor_pool = _descriptor_pool.Default()
+        self.descriptor_pool = descriptor_pool
+
         # Perform the recursive conversion to update the descriptors and enums in
         # place
         log.debug("Performing conversion")
@@ -118,10 +124,7 @@ class ConverterBase(Generic[T], abc.ABC):
 
         # Add the new file descriptor to the pool
         log.debug("Adding Descriptors to DescriptorPool")
-        if descriptor_pool is None:
-            log.debug2("Using default descriptor pool")
-            descriptor_pool = _descriptor_pool.Default()
-        safe_add_fd_to_pool(fd_proto, descriptor_pool)
+        safe_add_fd_to_pool(fd_proto, self.descriptor_pool)
 
         # Return the descriptor for the top-level message
         fullname = name if not package else ".".join([package, name])
@@ -225,6 +228,14 @@ class ConverterBase(Generic[T], abc.ABC):
         """Helper to add the descriptor's file to the required imports"""
         import_file = descriptor.file.name
         log.debug3("Adding import file %s", import_file)
+
+        # If the referenced descriptor lives in a different descriptor pool, we
+        # need to copy it over to the target pool
+        if descriptor.file.pool != self.descriptor_pool:
+            log.debug2("Copying descriptor file %s to pool", import_file)
+            fd_proto = descriptor_pb2.FileDescriptorProto()
+            descriptor.file.CopyToProto(fd_proto)
+            safe_add_fd_to_pool(fd_proto, self.descriptor_pool)
         self.imports.add(import_file)
 
     def _convert(self, entry: Any, name: str) -> ConvertOutputTypes:
