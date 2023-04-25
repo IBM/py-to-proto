@@ -13,9 +13,7 @@ import os
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection, service
-from google.protobuf.descriptor import ServiceDescriptor
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
-from google.protobuf.service import Service
 
 # Local
 from .descriptor_to_file import descriptor_to_file
