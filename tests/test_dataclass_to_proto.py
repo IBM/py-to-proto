@@ -52,7 +52,7 @@ def test_dataclass_to_proto_primitives(temp_dpool):
         foo: int
         bar: str
 
-    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool, validate=True)
     assert desc.fields_by_name["foo"].type == desc.fields_by_name["foo"].TYPE_INT64
     assert desc.fields_by_name["bar"].type == desc.fields_by_name["bar"].TYPE_STRING
 
@@ -353,13 +353,69 @@ def test_dataclass_to_proto_oneof_mixed(temp_dpool):
     correctly
     """
 
+    @dataclass
+    class FooStr:
+        foo: str
+
+    @dataclass
+    class Bar:
+        bar: Union[int, FooStr]
+
+    bar_desc = dataclass_to_proto("foo.bar", Bar, descriptor_pool=temp_dpool)
+    foostr_desc = bar_desc.nested_types_by_name["FooStr"]
+    assert len(bar_desc.oneofs) == 1
+    oneof_desc = bar_desc.oneofs_by_name["bar"]
+    fooint_fld = bar_desc.fields_by_name["barint"]
+    foostr_fld = bar_desc.fields_by_name["barfoostr"]
+    assert fooint_fld.type == fooint_fld.TYPE_INT64
+    assert fooint_fld.containing_oneof is oneof_desc
+    assert foostr_fld.type == foostr_fld.TYPE_MESSAGE
+    assert foostr_fld.message_type == foostr_desc
+    assert foostr_fld.containing_oneof is oneof_desc
+
 
 def test_dataclass_to_proto_oneof_named_fields(temp_dpool):
     """Make sure that oneof fields can be named using Annotated types"""
 
+    @dataclass
+    class Foo:
+        foo: Union[
+            Annotated[bool, OneofField("foo_bool")],
+            Annotated[str, OneofField("foo_str")],
+        ]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["foo"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    foostr_fld = desc.fields_by_name["foo_str"]
+    assert foobool_fld.type == foobool_fld.TYPE_BOOL
+    assert foobool_fld.containing_oneof is oneof_desc
+    assert foostr_fld.type == foostr_fld.TYPE_STRING
+    assert foostr_fld.containing_oneof is oneof_desc
+
 
 def test_dataclass_to_proto_custom_field_numbers(temp_dpool):
     """Make sure that custom fields can be added with Annotated types"""
+
+    @dataclass
+    class Foo:
+        foo: Union[
+            Annotated[bool, FieldNumber(10), OneofField("foo_bool")],
+            Annotated[str, FieldNumber(20), OneofField("foo_str")],
+        ]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["foo"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    foostr_fld = desc.fields_by_name["foo_str"]
+    assert foobool_fld.number == 10
+    assert foobool_fld.type == foobool_fld.TYPE_BOOL
+    assert foobool_fld.containing_oneof is oneof_desc
+    assert foostr_fld.number == 20
+    assert foostr_fld.type == foostr_fld.TYPE_STRING
+    assert foostr_fld.containing_oneof is oneof_desc
 
 
 def test_dataclass_to_proto_optional_fields(temp_dpool):
@@ -367,11 +423,46 @@ def test_dataclass_to_proto_optional_fields(temp_dpool):
     true optional (local oneof)
     """
 
+    @dataclass
+    class Foo:
+        foo: int = 42
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs[0]
+    foo_fld = desc.fields_by_name["foo"]
+    assert foo_fld.type == foo_fld.TYPE_INT64
+    assert foo_fld.containing_oneof is oneof_desc
+
 
 def test_dataclass_to_proto_enum_with_aliases(temp_dpool):
     """Make sure that an Enum with multiple keys mapping to the same value are
     handled as an enum alias in the descriptor
     """
+
+    class FooEnum(Enum):
+        RED = 1
+        ROJO = 1
+        GREEN = 2
+        VERDE = 2
+
+    desc = dataclass_to_proto("foo.bar", FooEnum, descriptor_pool=temp_dpool)
+    assert desc.GetOptions().allow_alias
+    assert desc.values_by_name["RED"].number == desc.values_by_name["ROJO"].number
+    assert desc.values_by_name["GREEN"].number == desc.values_by_name["VERDE"].number
+
+
+def test_dataclass_to_proto_enum_with_non_sequential_values(temp_dpool):
+    """Make sure that an Enum with non sequential numbers works"""
+
+    class FooEnum(Enum):
+        RED = 10
+        GREEN = 20
+
+    desc = dataclass_to_proto("foo.bar", FooEnum, descriptor_pool=temp_dpool)
+    assert not desc.GetOptions().allow_alias
+    assert desc.values_by_name["RED"].number == 10
+    assert desc.values_by_name["GREEN"].number == 20
 
 
 def test_dataclass_to_proto_enum_with_defined_zero_values(temp_dpool):
@@ -379,9 +470,29 @@ def test_dataclass_to_proto_enum_with_defined_zero_values(temp_dpool):
     the "special" zero placeholder
     """
 
+    class FooEnum(Enum):
+        RED = 0
+        GREEN = 1
 
-def test_dataclass_to_proto_custom_type_mapping():
+    desc = dataclass_to_proto("foo.bar", FooEnum, descriptor_pool=temp_dpool)
+    assert set(desc.values_by_name.keys()) == {"RED", "GREEN"}
+
+
+def test_dataclass_to_proto_custom_type_mapping(temp_dpool):
     """Make sure that a custom type mapping can be added for alternate typing"""
+
+    @dataclass
+    class Foo:
+        foo: int
+
+    desc = dataclass_to_proto(
+        package="foo.bar",
+        dataclass_=Foo,
+        descriptor_pool=temp_dpool,
+        type_mapping={int: _descriptor.FieldDescriptor.TYPE_UINT32},
+    )
+    foo_fld = desc.fields_by_name["foo"]
+    assert foo_fld.type == _descriptor.FieldDescriptor.TYPE_UINT32
 
 
 ## Error Cases #################################################################
