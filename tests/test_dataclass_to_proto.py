@@ -57,7 +57,7 @@ def test_dataclass_to_proto_primitives(temp_dpool):
     assert desc.fields_by_name["bar"].type == desc.fields_by_name["bar"].TYPE_STRING
 
 
-def test_dataclass_to_proto_nested_message(temp_dpool):
+def test_dataclass_to_proto_proto_nested_message(temp_dpool):
     """Make sure that a dataclass with a reference to another dataclass has the
     upstream as a nested message
     """
@@ -68,6 +68,26 @@ def test_dataclass_to_proto_nested_message(temp_dpool):
 
     @dataclass
     class Bar:
+        bar: Foo
+
+    bar_desc = dataclass_to_proto("foo.bar", Bar, descriptor_pool=temp_dpool)
+    foo_desc = bar_desc.nested_types_by_name["Foo"]
+    bar_fld = bar_desc.fields_by_name["bar"]
+    assert bar_fld.type == bar_fld.TYPE_MESSAGE
+    assert bar_fld.message_type is foo_desc
+
+
+def test_dataclass_to_proto_python_nested_message(temp_dpool):
+    """Make sure that a dataclass with a reference to another dataclass declared
+    inside the class itself has the upstream as a nested message
+    """
+
+    @dataclass
+    class Bar:
+        @dataclass
+        class Foo:
+            foo: int
+
         bar: Foo
 
     bar_desc = dataclass_to_proto("foo.bar", Bar, descriptor_pool=temp_dpool)
