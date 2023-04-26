@@ -2,7 +2,7 @@
 #
 # This phase sets up dependencies for the other phases
 ##
-ARG PYTHON_VERSION=3.7
+ARG PYTHON_VERSION=3.8
 ARG BASE_IMAGE=python:${PYTHON_VERSION}-slim
 FROM ${BASE_IMAGE} as base
 ARG PROTOBUF_VERSION=""

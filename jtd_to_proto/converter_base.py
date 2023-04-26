@@ -91,6 +91,12 @@ class ConverterBase(Generic[T], abc.ABC):
             if not self.validate(source_schema):
                 raise ValueError(f"Invalid Schema: {source_schema}")
 
+        # Figure out which descriptor pool to use
+        if descriptor_pool is None:
+            log.debug2("Using default descriptor pool")
+            descriptor_pool = _descriptor_pool.Default()
+        self.descriptor_pool = descriptor_pool
+
         # Perform the recursive conversion to update the descriptors and enums in
         # place
         log.debug("Performing conversion")
@@ -118,10 +124,7 @@ class ConverterBase(Generic[T], abc.ABC):
 
         # Add the new file descriptor to the pool
         log.debug("Adding Descriptors to DescriptorPool")
-        if descriptor_pool is None:
-            log.debug2("Using default descriptor pool")
-            descriptor_pool = _descriptor_pool.Default()
-        safe_add_fd_to_pool(fd_proto, descriptor_pool)
+        safe_add_fd_to_pool(fd_proto, self.descriptor_pool)
 
         # Return the descriptor for the top-level message
         fullname = name if not package else ".".join([package, name])
@@ -225,7 +228,25 @@ class ConverterBase(Generic[T], abc.ABC):
         """Helper to add the descriptor's file to the required imports"""
         import_file = descriptor.file.name
         log.debug3("Adding import file %s", import_file)
+
+        # If the referenced descriptor lives in a different descriptor pool, we
+        # need to copy it over to the target pool
+        if descriptor.file.pool != self.descriptor_pool:
+            log.debug2("Copying descriptor file %s to pool", import_file)
+            fd_proto = descriptor_pb2.FileDescriptorProto()
+            descriptor.file.CopyToProto(fd_proto)
+            safe_add_fd_to_pool(fd_proto, self.descriptor_pool)
         self.imports.add(import_file)
+
+    @staticmethod
+    def _get_field_type_name(field_type: Any, field_name: str) -> str:
+        """If the nested field definition is a type (a class), the expectation
+        is that the nested object will have the same name as the class itself,
+        otherwise we use the field name as the implicit name for nested objects.
+        """
+        if isinstance(field_type, type):
+            return field_type.__name__
+        return field_name
 
     def _convert(self, entry: Any, name: str) -> ConvertOutputTypes:
         """This is the core recursive implementation detail function that does
@@ -248,7 +269,7 @@ class ConverterBase(Generic[T], abc.ABC):
         enum_entries = self.get_enum_vals(entry)
         if enum_entries is not None:
             log.debug2("Handling Enum: %s", entry)
-            return self._convert_enum(name, enum_entries)
+            return self._convert_enum(name, entry, enum_entries)
 
         # Handle messages
         #
@@ -359,10 +380,10 @@ class ConverterBase(Generic[T], abc.ABC):
         return nested
 
     def _convert_enum(
-        self, name: str, enum_entries: Iterable[Tuple[str, int]]
+        self, name: str, entry: Any, enum_entries: Iterable[Tuple[str, int]]
     ) -> descriptor_pb2.EnumDescriptorProto:
         """Convert nested enums"""
-        enum_name = to_upper_camel(name)
+        enum_name = self._get_field_type_name(entry, to_upper_camel(name))
         log.debug("Enum name: %s", enum_name)
         has_aliases = len(set([entry[1] for entry in enum_entries])) != len(
             enum_entries
@@ -422,7 +443,12 @@ class ConverterBase(Generic[T], abc.ABC):
                 log.debug2("Handling oneof field %s", field_name)
                 nested_results = [
                     (
-                        self._convert(entry=oneof_field_def, name=oneof_field_name),
+                        self._convert(
+                            entry=oneof_field_def,
+                            name=self._get_field_type_name(
+                                oneof_field_def, oneof_field_name
+                            ),
+                        ),
                         {
                             "oneof_index": len(nested_oneofs),
                             "number": self.get_field_number(
@@ -447,9 +473,13 @@ class ConverterBase(Generic[T], abc.ABC):
             # Otherwise, it's a "regular" field, so just recurse on the type
             else:
                 log.debug3("Handling non-oneof field: %s", field_name)
-                nested_result = self._convert(
-                    entry=self.get_field_type(field_def), name=field_name
-                )
+                # If the nested field definition is a type (a class), the
+                # expectation is that the nested object will have the same name
+                # as the class itself, otherwise we use the field name as the
+                # implicit name for nested objects.
+                field_type = self.get_field_type(field_def)
+                nested_name = self._get_field_type_name(field_type, field_name)
+                nested_result = self._convert(entry=field_type, name=nested_name)
                 nested_results = [(nested_result, {})]
 
             # For all nested fields produced by either the onoof logic or
