@@ -27,7 +27,7 @@ PROTOBUF_VERSION ?=
 .PHONY: develop.build
 develop.build: ## Build the development environment container
 	docker build . --target=base \
-		-t jtd-to-proto-develop \
+		-t py-to-proto-develop \
 		--build-arg PYTHON_VERSION=${PYTHON_VERSION} \
 		--build-arg PROTOBUF_VERSION="${PROTOBUF_VERSION}"
 
@@ -39,4 +39,4 @@ develop:	develop.build ## Run the develop shell with the local codebase mounted
 		-w /src \
 		-v ${PWD}:/src \
 		-v ${PWD}/.bash_history:/root/.bash_history \
-		jtd-to-proto-develop
+		py-to-proto-develop

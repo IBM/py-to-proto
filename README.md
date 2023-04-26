@@ -145,4 +145,4 @@ There are a number of similar projects in this space that offer slightly differe
 
 -   [`jtd-codegen`](https://jsontypedef.com/docs/jtd-codegen/): This project focuses on statically generating language-native code (including `python`) to represent the JTD schema.
 -   [`py-json-to-proto`](https://pypi.org/project/py-json-to-proto/): This project aims to deduce a schema from an instance of a `json` object.
--   [`pure-protobuf`](https://pypi.org/project/pure-protobuf/): This project has a very similar aim to `jtd-to-proto`, but it skips the intermediate `descriptor` representation and thus is not able to produce native `message.Message` classes.
+-   [`pure-protobuf`](https://pypi.org/project/pure-protobuf/): This project has a very similar aim to `py-to-proto`, but it skips the intermediate `descriptor` representation and thus is not able to produce native `message.Message` classes.
