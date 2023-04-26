@@ -238,6 +238,16 @@ class ConverterBase(Generic[T], abc.ABC):
             safe_add_fd_to_pool(fd_proto, self.descriptor_pool)
         self.imports.add(import_file)
 
+    @staticmethod
+    def _get_field_type_name(field_type: Any, field_name: str) -> str:
+        """If the nested field definition is a type (a class), the expectation
+        is that the nested object will have the same name as the class itself,
+        otherwise we use the field name as the implicit name for nested objects.
+        """
+        if isinstance(field_type, type):
+            return field_type.__name__
+        return field_name
+
     def _convert(self, entry: Any, name: str) -> ConvertOutputTypes:
         """This is the core recursive implementation detail function that does
         the common conversion logic for all converters.
@@ -373,7 +383,7 @@ class ConverterBase(Generic[T], abc.ABC):
         self, name: str, entry: Any, enum_entries: Iterable[Tuple[str, int]]
     ) -> descriptor_pb2.EnumDescriptorProto:
         """Convert nested enums"""
-        enum_name = getattr(entry, "__name__", to_upper_camel(name))
+        enum_name = self._get_field_type_name(entry, to_upper_camel(name))
         log.debug("Enum name: %s", enum_name)
         has_aliases = len(set([entry[1] for entry in enum_entries])) != len(
             enum_entries
@@ -435,7 +445,9 @@ class ConverterBase(Generic[T], abc.ABC):
                     (
                         self._convert(
                             entry=oneof_field_def,
-                            name=getattr(oneof_field_def, "__name__", oneof_field_name),
+                            name=self._get_field_type_name(
+                                oneof_field_def, oneof_field_name
+                            ),
                         ),
                         {
                             "oneof_index": len(nested_oneofs),
@@ -466,7 +478,7 @@ class ConverterBase(Generic[T], abc.ABC):
                 # as the class itself, otherwise we use the field name as the
                 # implicit name for nested objects.
                 field_type = self.get_field_type(field_def)
-                nested_name = getattr(field_type, "__name__", field_name)
+                nested_name = self._get_field_type_name(field_type, field_name)
                 nested_result = self._convert(entry=field_type, name=nested_name)
                 nested_results = [(nested_result, {})]
 
