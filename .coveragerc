@@ -1,4 +1,4 @@
 [run]
 omit =
     tests/**
-    jtd_to_proto/compat_annotated.py
+    py_to_proto/compat_annotated.py

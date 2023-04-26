@@ -14,7 +14,7 @@ then
 fi
 
 # The name of the library we're testing
-LIBRARY_NAME="jtd_to_proto"
+LIBRARY_NAME="py_to_proto"
 
 # 10 minutes max for trying to install the new version
 MAX_DURATION="${MAX_DURATION:-600}"

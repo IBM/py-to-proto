@@ -61,7 +61,7 @@ def safe_add_fd_to_pool(
         except TypeError as e:
             # More likely than not, this is a duplicate symbol; the main case in which
             # this could occur is when you've compiled files with protoc, added them to your
-            # descriptor pool, and ALSO added the defs in your jtd_to_proto schema, but the
+            # descriptor pool, and ALSO added the defs in your py_to_proto schema, but the
             # lookup validation with fd_proto.name is skipped because the .proto file fed to
             # protoc had a different name!
             raise TypeError(

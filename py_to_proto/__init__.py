@@ -8,11 +8,11 @@ Rerferences:
 Example:
 
 ```
-import jtd_to_proto
+import py_to_proto
 
 # Declare the Foo protobuf message class
-Foo = jtd_to_proto.descriptor_to_message_class(
-    jtd_to_proto.jtd_to_proto(
+Foo = py_to_proto.descriptor_to_message_class(
+    py_to_proto.py_to_proto(
         name="Foo",
         package="foobar",
         jtd_def={

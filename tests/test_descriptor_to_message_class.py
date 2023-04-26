@@ -12,8 +12,8 @@ from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 # Local
 from .conftest import temp_dpool
-from jtd_to_proto.descriptor_to_message_class import descriptor_to_message_class
-from jtd_to_proto.jtd_to_proto import jtd_to_proto
+from py_to_proto.descriptor_to_message_class import descriptor_to_message_class
+from py_to_proto.jtd_to_proto import jtd_to_proto
 
 
 def test_descriptor_to_message_class_generated_descriptor(temp_dpool):

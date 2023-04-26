@@ -24,7 +24,7 @@ FAIL_THRESH=100.0
 python3 -m pytest \
     $procs_arg \
     --cov-config=.coveragerc \
-    --cov=jtd_to_proto \
+    --cov=py_to_proto \
     --cov-report=term \
     --cov-report=html \
     --cov-fail-under=$FAIL_THRESH \

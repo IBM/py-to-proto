@@ -22,7 +22,7 @@ Help on open source projects is always welcome and there is always something tha
 
 ## How Can I Contribute?
 
-When contributing, it's useful to start by looking at [issues](https://github.com/IBM/jtd-to-proto/issues). After picking up an issue, writing code, or updating a document, make a pull request and your work will be reviewed and merged. If you're adding a new feature, it's best to [write an issue](https://github.com/IBM/jtd-to-proto/issues/new?assignees=&labels=&template=feature_request.md&title=) first to discuss it with maintainers first.
+When contributing, it's useful to start by looking at [issues](https://github.com/IBM/py-to-proto/issues). After picking up an issue, writing code, or updating a document, make a pull request and your work will be reviewed and merged. If you're adding a new feature, it's best to [write an issue](https://github.com/IBM/py-to-proto/issues/new?assignees=&labels=&template=feature_request.md&title=) first to discuss it with maintainers first.
 
 ### Reporting Bugs
 
@@ -30,7 +30,7 @@ This section guides you through submitting a bug report. Following these guideli
 
 #### How Do I Submit A (Good) Bug Report?
 
-Bugs are tracked as [GitHub issues using the Bug Report template](https://github.com/IBM/jtd-to-proto/issues/new?assignees=&labels=&template=bug_report.md&title=). Create an issue on that and provide the information suggested in the bug report issue template.
+Bugs are tracked as [GitHub issues using the Bug Report template](https://github.com/IBM/py-to-proto/issues/new?assignees=&labels=&template=bug_report.md&title=). Create an issue on that and provide the information suggested in the bug report issue template.
 
 ### Suggesting Enhancements
 
@@ -38,11 +38,11 @@ This section guides you through submitting an enhancement suggestion, including 
 
 #### How Do I Submit A (Good) Enhancement Suggestion?
 
-Enhancement suggestions are tracked as [GitHub issues using the Feature Request template](https://github.com/IBM/jtd-to-proto/issues/new?assignees=&labels=&template=feature_request.md&title=). Create an issue and provide the information suggested in the feature requests or user story issue template.
+Enhancement suggestions are tracked as [GitHub issues using the Feature Request template](https://github.com/IBM/py-to-proto/issues/new?assignees=&labels=&template=feature_request.md&title=). Create an issue and provide the information suggested in the feature requests or user story issue template.
 
 #### How Do I Submit A (Good) Improvement Item?
 
-Improvements to existing functionality are tracked as [GitHub issues using the User Story template](https://github.com/IBM/jtd-to-proto/issues/new?assignees=&labels=&template=user-story.md&title=). Create an issue and provide the information suggested in the feature requests or user story issue template.
+Improvements to existing functionality are tracked as [GitHub issues using the User Story template](https://github.com/IBM/py-to-proto/issues/new?assignees=&labels=&template=user-story.md&title=). Create an issue and provide the information suggested in the feature requests or user story issue template.
 
 ## Development
 
@@ -94,8 +94,8 @@ Coding style is enforced by the CI tests, so if not installed locally, your PR w
 
 Unsure where to begin contributing? You can start by looking through these issues:
 
--   Issues with the [`good first issue` label](https://github.com/IBM/jtd-to-proto/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these should only require a few lines of code and are good targets if you're just starting contributing.
--   Issues with the [`help wanted` label](https://github.com/IBM/jtd-to-proto/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these range from simple to more complex, but are generally things we want but can't get to in a short time frame.
+-   Issues with the [`good first issue` label](https://github.com/IBM/py-to-proto/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these should only require a few lines of code and are good targets if you're just starting contributing.
+-   Issues with the [`help wanted` label](https://github.com/IBM/py-to-proto/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these range from simple to more complex, but are generally things we want but can't get to in a short time frame.
 
 ### How to contribute
 
@@ -116,4 +116,4 @@ Once you've [created a pull request](#how-to-contribute), maintainers will revie
 
 ## Releasing (Maintainers only)
 
-The responsibility for releasing new versions of the libraries falls to the maintainers. Releases will follow standard [semantic versioning](https://semver.org/) and be hosted on [pypi](https://pypi.org/project/jtd-to-proto/).
+The responsibility for releasing new versions of the libraries falls to the maintainers. Releases will follow standard [semantic versioning](https://semver.org/) and be hosted on [pypi](https://pypi.org/project/py-to-proto/).

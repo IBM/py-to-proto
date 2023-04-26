@@ -15,14 +15,14 @@ from google.protobuf import descriptor_pb2, timestamp_pb2
 import pytest
 
 # Local
-from jtd_to_proto.dataclass_to_proto import (
+from py_to_proto.dataclass_to_proto import (
     Annotated,
     FieldNumber,
     OneofField,
     dataclass_to_proto,
 )
-from jtd_to_proto.descriptor_to_message_class import descriptor_to_message_class
-from jtd_to_proto.utils import _are_same_message_descriptor, to_upper_camel
+from py_to_proto.descriptor_to_message_class import descriptor_to_message_class
+from py_to_proto.utils import _are_same_message_descriptor, to_upper_camel
 
 ## Helpers #####################################################################
 
