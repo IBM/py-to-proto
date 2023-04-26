@@ -11,9 +11,9 @@ from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
-from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import jtd_to_proto
-from jtd_to_proto.utils import to_upper_camel
+from py_to_proto.json_to_service import json_to_service
+from py_to_proto.jtd_to_proto import jtd_to_proto
+from py_to_proto.utils import to_upper_camel
 
 ## Happy Path ##################################################################
 

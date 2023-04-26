@@ -22,9 +22,9 @@ import alog
 
 # Local
 from .conftest import temp_dpool
-from jtd_to_proto.descriptor_to_file import descriptor_to_file
-from jtd_to_proto.json_to_service import json_to_service
-from jtd_to_proto.jtd_to_proto import jtd_to_proto
+from py_to_proto.descriptor_to_file import descriptor_to_file
+from py_to_proto.json_to_service import json_to_service
+from py_to_proto.jtd_to_proto import jtd_to_proto
 
 log = alog.use_channel("TEST")
 

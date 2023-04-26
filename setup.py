@@ -1,4 +1,4 @@
-"""A setuptools setup module for jtd_to_proto"""
+"""A setuptools setup module for py_to_proto"""
 
 # Standard
 import os
@@ -20,7 +20,7 @@ with open(os.path.join(python_base, "requirements.txt"), "r") as handle:
     requirements = handle.read()
 
 setup(
-    name="jtd_to_proto",
+    name="py_to_proto",
     version=version,
     description="A tool to dynamically create protobuf message classes from JSON Typedef",
     long_description=long_description,
@@ -38,6 +38,6 @@ setup(
         "Programming Language :: Python :: 3.10",
     ],
     keywords=["json", "json typedef", "jtd", "protobuf", "proto"],
-    packages=["jtd_to_proto"],
+    packages=["py_to_proto"],
     install_requires=requirements,
 )

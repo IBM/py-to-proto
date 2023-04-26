@@ -10,8 +10,8 @@ import pytest
 import alog
 
 # Local
-from jtd_to_proto.jtd_to_proto import jtd_to_proto
-from jtd_to_proto.validation import _validate_jtd_impl, is_valid_jtd, validate_jtd
+from py_to_proto.jtd_to_proto import jtd_to_proto
+from py_to_proto.validation import _validate_jtd_impl, is_valid_jtd, validate_jtd
 
 log = alog.use_channel("TEST")
 

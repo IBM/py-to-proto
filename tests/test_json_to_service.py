@@ -12,14 +12,14 @@ import grpc
 import pytest
 
 # Local
-from jtd_to_proto import descriptor_to_message_class
-from jtd_to_proto.json_to_service import (
+from py_to_proto import descriptor_to_message_class
+from py_to_proto.json_to_service import (
     json_to_service,
     service_descriptor_to_client_stub,
     service_descriptor_to_server_registration_function,
     service_descriptor_to_service,
 )
-from jtd_to_proto.jtd_to_proto import jtd_to_proto
+from py_to_proto.jtd_to_proto import jtd_to_proto
 
 ## Helpers #####################################################################
 
