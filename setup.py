@@ -22,10 +22,10 @@ with open(os.path.join(python_base, "requirements.txt"), "r") as handle:
 setup(
     name="py_to_proto",
     version=version,
-    description="A tool to dynamically create protobuf message classes from JSON Typedef",
+    description="A tool to dynamically create protobuf message classes from python data schemas",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/IBM/jtd-to-proto",
+    url="https://github.com/IBM/py-to-proto",
     author="Gabe Goodhart",
     author_email="gabe.l.hart@gmail.com",
     license="MIT",
@@ -36,8 +36,9 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
-    keywords=["json", "json typedef", "jtd", "protobuf", "proto"],
+    keywords=["json", "json typedef", "jtd", "protobuf", "proto", "dataclass"],
     packages=["py_to_proto"],
     install_requires=requirements,
 )
