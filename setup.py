@@ -11,6 +11,16 @@ python_base = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(python_base, "README.md"), "r") as handle:
     long_description = handle.read()
 
+long_description = (
+    """
+# DEPRECATED
+
+This project has been renamed to `py-to-proto` to reflect its expansion to include other input schema formats. Please see https://pypi.org/project/py-to-proto/
+
+"""
+    + long_description
+)
+
 # Read version from the env
 version = os.environ.get("RELEASE_VERSION")
 assert version is not None, "Must set RELEASE_VERSION"
@@ -20,9 +30,9 @@ with open(os.path.join(python_base, "requirements.txt"), "r") as handle:
     requirements = handle.read()
 
 setup(
-    name="py_to_proto",
+    name="jtd_to_proto",
     version=version,
-    description="A tool to dynamically create protobuf message classes from python data schemas",
+    description="DEPRECATED: Please see py-to-proto: https://pypi.org/project/py-to-proto/",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/IBM/py-to-proto",
