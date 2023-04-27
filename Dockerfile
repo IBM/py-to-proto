@@ -64,5 +64,5 @@ COPY ./scripts/run_tests.sh /src/scripts/run_tests.sh
 COPY ./scripts/install_release.sh /src/scripts/install_release.sh
 RUN true && \
     ./scripts/install_release.sh && \
-    ./scripts/run_tests.sh && \
+    python3 -m pytest -W error && \
     true
