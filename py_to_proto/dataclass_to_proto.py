@@ -246,11 +246,10 @@ class DataclassConverter(ConverterBase):
         """If the given field is a Union, return an iterable of the sub-field
         definitions for its
         """
-        field_type = field_def.type
+        field_type = self._resolve_wrapped_type(field_def.type)
         oneof_fields = []
         if get_origin(field_type) is Union:
-            union_args = get_args(field_type)
-            for arg in union_args:
+            for arg in get_args(field_type):
                 oneof_field_name = self._get_unique_annotation(arg, OneofField)
                 if oneof_field_name is None:
                     res_type = self._resolve_wrapped_type(arg)
