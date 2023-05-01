@@ -140,7 +140,7 @@ class DataclassConverter(ConverterBase):
     def get_concrete_type(self, entry: Any) -> Any:
         """If this is a concrete type, get the type map key for it"""
         # Unwrap any Annotations
-        entry_type = self._resolve_annotated_type(entry)
+        entry_type = self._resolve_wrapped_type(entry)
 
         # If it's a known type, just return it
         if entry_type in self.type_mapping or isinstance(
@@ -246,14 +246,13 @@ class DataclassConverter(ConverterBase):
         """If the given field is a Union, return an iterable of the sub-field
         definitions for its
         """
-        field_type = field_def.type
+        field_type = self._resolve_wrapped_type(field_def.type)
         oneof_fields = []
         if get_origin(field_type) is Union:
-            union_args = get_args(field_type)
-            for arg in union_args:
+            for arg in get_args(field_type):
                 oneof_field_name = self._get_unique_annotation(arg, OneofField)
                 if oneof_field_name is None:
-                    res_type = self._resolve_annotated_type(arg)
+                    res_type = self._resolve_wrapped_type(arg)
                     oneof_field_name = (
                         f"{field_def.name}{str(res_type.__name__)}".lower()
                     )
@@ -269,7 +268,7 @@ class DataclassConverter(ConverterBase):
         """Get the type of the field. The definition of type here will be
         specific to the converter (e.g. string for JTD, py type for dataclass)
         """
-        field_type = self._resolve_annotated_type(field_def.type)
+        field_type = self._resolve_wrapped_type(field_def.type)
         if get_origin(field_type) is list:
             args = get_args(field_type)
             if len(args) == 1:
@@ -278,17 +277,33 @@ class DataclassConverter(ConverterBase):
 
     def is_repeated_field(self, field_def: dataclasses.Field) -> bool:
         """Determine if the given field def is repeated"""
-        return get_origin(self._resolve_annotated_type(field_def.type)) is list
+        return get_origin(self._resolve_wrapped_type(field_def.type)) is list
 
     ## Implementation Details ##################################################
 
-    @staticmethod
-    def _resolve_annotated_type(field_type: type) -> type:
-        """Unwrap the type inside an Annotated, or just return the type if not
-        annotated
+    @classmethod
+    def _resolve_wrapped_type(cls, field_type: type) -> type:
+        """Unwrap the type inside an Annotated or Optional, or just return the
+        type if not wrapped
         """
-        if get_origin(field_type) is Annotated:
-            return get_args(field_type)[0]
+        origin = get_origin(field_type)
+        args = get_args(field_type)
+
+        # Unwrap Annotated and recurse in case it's an Annotated[Optional]
+        if origin is Annotated:
+            return cls._resolve_wrapped_type(args[0])
+
+        # Unwrap Optional and recurse in case it's an Optional[Annotated]
+        if origin is Union and type(None) in args:
+            non_none_args = [arg for arg in args if arg is not type(None)]
+            assert non_none_args, f"Cannot have a union with only one NoneType arg"
+            if len(non_none_args) > 1:
+                res_type = Union.__getitem__(tuple(non_none_args))
+            else:
+                res_type = non_none_args[0]
+            return cls._resolve_wrapped_type(res_type)
+
+        # If not Annotated or Optional, return as is
         return field_type
 
     @staticmethod

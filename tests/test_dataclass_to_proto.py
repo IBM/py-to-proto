@@ -6,7 +6,7 @@ Tests for dataclass_to_proto
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 # Third Party
 from google.protobuf import any_pb2
@@ -513,6 +513,29 @@ def test_dataclass_to_proto_custom_type_mapping(temp_dpool):
     )
     foo_fld = desc.fields_by_name["foo"]
     assert foo_fld.type == _descriptor.FieldDescriptor.TYPE_UINT32
+
+
+def test_dataclass_to_proto_optional_field(temp_dpool):
+    """Make sure that an Optional[] field is not treated as a oneof"""
+
+    @dataclass
+    class Foo:
+        foo: Optional[Annotated[int, "foo"]]
+        bar: Annotated[Optional[Union[str, int]], "foo"]
+        baz: Optional[str]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    foo_fld = desc.fields_by_name["foo"]
+    assert foo_fld.type == _descriptor.FieldDescriptor.TYPE_INT64
+    oneof_desc = desc.oneofs_by_name["bar"]
+    barstr_fld = desc.fields_by_name["barstr"]
+    assert barstr_fld.type == _descriptor.FieldDescriptor.TYPE_STRING
+    assert barstr_fld.containing_oneof is oneof_desc
+    barint_fld = desc.fields_by_name["barint"]
+    assert barint_fld.type == _descriptor.FieldDescriptor.TYPE_INT64
+    assert barint_fld.containing_oneof is oneof_desc
+    baz_fld = desc.fields_by_name["baz"]
+    assert baz_fld.type == _descriptor.FieldDescriptor.TYPE_STRING
 
 
 ## Error Cases #################################################################
