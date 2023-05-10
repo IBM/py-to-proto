@@ -1,6 +1,10 @@
 """
 Tests for json_to_service functions
 """
+import time
+from typing import Iterator
+
+from caikit.core.data_model.streams.data_stream import DataStream
 
 # Standard
 from concurrent import futures
@@ -300,7 +304,7 @@ def test_service_descriptor_to_registration_function(foo_service_descriptor):
     )
 
 
-def test_end_to_end_integration(foo_message, bar_message, foo_service_descriptor):
+def test_end_to_end_unary_unary_integration(foo_message, bar_message, foo_service_descriptor):
     """Test a full grpc service integration"""
     registration_fn = service_descriptor_to_server_registration_function(
         foo_service_descriptor
@@ -341,5 +345,80 @@ def test_end_to_end_integration(foo_message, bar_message, foo_service_descriptor
     input = foo_message(foo=False)
     response = my_stub.FooPredict(request=input)
     assert isinstance(response, bar_message)
+
+    server.stop(grace=0)
+
+
+def test_end_to_end_unary_streaming_integration(foo_message, bar_message, temp_dpool):
+    service_json = {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooPredict",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
+                    "output_streaming": True,
+                }
+            ]
+        }
+    }
+    service_descriptor = json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
+    )
+
+    registration_fn = service_descriptor_to_server_registration_function(
+        service_descriptor
+    )
+    service_class = service_descriptor_to_service(service_descriptor)
+    stub_class = service_descriptor_to_client_stub(service_descriptor)
+
+    class Servicer(service_class):
+        """gRPC Service Impl"""
+
+        def to_proto(self, i: int) -> bar_message:
+            return bar_message(boo=i, baz=True)
+
+        def some_generator(self, n) -> Iterator[int]:
+            for i in range(n):
+                yield i
+                time.sleep(0.01)
+
+        def some_model_run(self) -> DataStream[int]:
+            my_output_stream = DataStream(self.some_generator, 100)
+            return my_output_stream
+
+        def FooPredict(self, request, context):
+            # Test that the `optionalProperty` "bar" of the request can be checked for existence
+            if request.foo:
+                assert request.HasField("bar")
+            else:
+                assert not request.HasField("bar")
+
+            datastream = self.some_model_run()
+
+            return iter(datastream.map(self.to_proto))
+            # for thing in datastream:
+            #     yield self.to_proto(thing)
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
+    registration_fn(Servicer(), server)
+    server.add_insecure_port("[::]:9001")
+    server.start()
+
+    # Create the client-side connection
+    chan = grpc.insecure_channel("localhost:9001")
+    my_stub = stub_class(chan)
+    # nb: we'll set "foo" to the existence of "bar" to put asserts in the request handler
+    input = foo_message(foo=True, bar=-9000)
+
+    # Make a gRPC call
+    i = 0
+    for bar in my_stub.FooPredict(request=input):
+        assert bar.boo == i
+        i += 1
+    assert i == 100
 
     server.stop(grace=0)

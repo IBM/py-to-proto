@@ -1,5 +1,5 @@
 # Standard
-from typing import Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, List, Optional, Type, Set
 import dataclasses
 import types
 
@@ -8,7 +8,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message, service
-from google.protobuf.descriptor import ServiceDescriptor
+from google.protobuf.descriptor import ServiceDescriptor, MethodDescriptor
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
 import grpc
@@ -36,6 +36,10 @@ SERVICE_JTD_SCHEMA = {
                             "input_type": {"type": "string"},
                             "name": {"type": "string"},
                             "output_type": {"type": "string"},
+                        },
+                        "optionalProperties": {
+                            "output_streaming": {"type": "boolean"},
+                            "input_streaming": {"type": "boolean"}
                         }
                     }
                 }
@@ -50,6 +54,24 @@ EXTENDED_TYPE_VALIDATORS = dict(
 
 # Python type hint equivalent of jtd service schema
 ServiceJsonType = Dict[str, Dict[str, List[Dict[str, str]]]]
+
+
+# class GRPCService:
+#     descriptor: ServiceDescriptor
+#     registration_function: Callable[[Service, grpc.Server], None]
+#     client_stub_class: Type
+#     service_class: Type[service.Service]
+#
+# def json_to_service_package(
+#         name: str,
+#         package: str,
+#         json_service_def: ServiceJsonType,
+#         *,
+#         descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
+# ) -> ServicePackage:
+#
+#     descriptor = json_to_service(name, package, json_service_def, descriptor_pool)
+#
 
 
 def json_to_service(
@@ -101,11 +123,19 @@ def json_to_service(
         rpc_output_type = rpc_def["output_type"]
         output_descriptor = descriptor_pool.FindMessageTypeByName(rpc_output_type)
 
+        output_streaming = rpc_def.get("output_streaming", False)
+        input_streaming = rpc_def.get("input_streaming", False)
+
+        if input_streaming:
+            raise ValueError("Input streaming not supported")
+
         method_descriptor_protos.append(
             descriptor_pb2.MethodDescriptorProto(
                 name=rpc_def["name"],
                 input_type=input_descriptor.full_name,
                 output_type=output_descriptor.full_name,
+                client_streaming=input_streaming,
+                server_streaming=output_streaming
             )
         )
         imports.append(input_descriptor.file.name)
@@ -132,6 +162,10 @@ def json_to_service(
 
     # Return the descriptor for the top-level message
     fullname = name if not package else ".".join([package, name])
+
+    # service_descriptor_wrapper = _ServiceDescriptorWrapper(descriptor_pool.FindServiceByName(fullname))
+
+    sd = descriptor_pool.FindServiceByName(fullname)
 
     return descriptor_pool.FindServiceByName(fullname)
 
@@ -173,13 +207,13 @@ def service_descriptor_to_client_stub(
     methods = _get_rpc_methods(service_descriptor)
 
     # Initializer
-    def initializer(self, channel):
+    def initializer(self, channel: grpc.Channel):
         f"""Initializes a client stub with for the {service_descriptor.name} Service"""
         for method in methods:
             setattr(
                 self,
                 method.name,
-                channel.unary_unary(
+                channel.unary_stream(
                     method.fullname,
                     request_serializer=method.input_message_class.SerializeToString,
                     response_deserializer=method.output_message_class.FromString,
@@ -213,7 +247,7 @@ def service_descriptor_to_server_registration_function(
     def registration_function(servicer: Service, server: grpc.Server):
         """Server registration function"""
         rpc_method_handlers = {
-            method.name: grpc.unary_unary_rpc_method_handler(
+            method.name: grpc.unary_stream_rpc_method_handler(
                 getattr(servicer, method.name),
                 request_deserializer=method.input_message_class.FromString,
                 response_serializer=method.output_message_class.SerializeToString,
@@ -234,6 +268,8 @@ class _RPCMethod:
     fullname: str
     input_message_class: Type[message.Message]
     output_message_class: Type[message.Message]
+    input_streaming: bool = False
+    output_streaming: bool = False
 
 
 def _get_rpc_methods(service_descriptor: ServiceDescriptor) -> List[_RPCMethod]:
@@ -270,5 +306,8 @@ def _get_rpc_methods(service_descriptor: ServiceDescriptor) -> List[_RPCMethod]:
                 output_message_class=output_message_class,
             )
         )
+        print(method)
+        print(dir(method))
 
     return methods
+
