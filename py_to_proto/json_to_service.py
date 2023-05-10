@@ -341,7 +341,6 @@ def _is_input_streaming(json_service_def: ServiceJsonType, method_name: str) -> 
     for method in rpcs_def:
         if method["name"] == method_name:
             return method.get("input_streaming", False)
-    return False
 
 
 def _is_output_streaming(json_service_def: ServiceJsonType, method_name: str) -> bool:
@@ -349,5 +348,4 @@ def _is_output_streaming(json_service_def: ServiceJsonType, method_name: str) ->
     rpcs_def = json_service["rpcs"]
     for method in rpcs_def:
         if method["name"] == method_name:
-            return method.get("input_streaming", False)
-    return False
+            return method.get("output_streaming", False)

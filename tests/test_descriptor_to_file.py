@@ -304,7 +304,7 @@ def test_descriptor_to_file_service_descriptor(temp_dpool):
             }
         },
         descriptor_pool=temp_dpool,
-    )
+    ).descriptor
     # TODO: type annotation fixup
     res = descriptor_to_file(service_descriptor)
     assert "service FooService {" in res
@@ -347,6 +347,6 @@ def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool)
             }
         },
         descriptor_pool=temp_dpool,
-    )
+    ).descriptor
     res = descriptor_to_file(service_descriptor)
     assert compile_proto_module(res, imported_file_contents=imported_files)
