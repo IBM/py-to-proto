@@ -1,5 +1,5 @@
 # Standard
-from typing import Callable, Dict, List, Optional, Type, Set
+from typing import Callable, Dict, List, Optional, Set, Type
 import dataclasses
 import types
 
@@ -8,7 +8,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message, service
-from google.protobuf.descriptor import ServiceDescriptor, MethodDescriptor
+from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
 import grpc
@@ -39,8 +39,8 @@ SERVICE_JTD_SCHEMA = {
                         },
                         "optionalProperties": {
                             "output_streaming": {"type": "boolean"},
-                            "input_streaming": {"type": "boolean"}
-                        }
+                            "input_streaming": {"type": "boolean"},
+                        },
                     }
                 }
             }
@@ -135,7 +135,7 @@ def json_to_service(
                 input_type=input_descriptor.full_name,
                 output_type=output_descriptor.full_name,
                 client_streaming=input_streaming,
-                server_streaming=output_streaming
+                server_streaming=output_streaming,
             )
         )
         imports.append(input_descriptor.file.name)
@@ -306,8 +306,5 @@ def _get_rpc_methods(service_descriptor: ServiceDescriptor) -> List[_RPCMethod]:
                 output_message_class=output_message_class,
             )
         )
-        print(method)
-        print(dir(method))
 
     return methods
-
