@@ -98,7 +98,9 @@ def json_to_service(
         raise ValueError("Invalid service json")
 
     # First get the descriptor:
-    service_descriptor = _json_to_service_descriptor(name, package, json_service_def, descriptor_pool=descriptor_pool)
+    service_descriptor = _json_to_service_descriptor(
+        name, package, json_service_def, descriptor_pool=descriptor_pool
+    )
     # And list of _RPCMethod bits for the client + registration function
     rpc_list = _get_rpc_methods(service_descriptor, json_service_def)
 
@@ -106,12 +108,19 @@ def json_to_service(
     client_stub = _service_descriptor_to_client_stub(service_descriptor, rpc_list)
 
     # And the registration function:
-    registration_function = _service_descriptor_to_server_registration_function(service_descriptor, rpc_list)
+    registration_function = _service_descriptor_to_server_registration_function(
+        service_descriptor, rpc_list
+    )
 
     # And service class!
     service_class = _service_descriptor_to_service(service_descriptor)
 
-    return GRPCService(descriptor=service_descriptor, service_class=service_class, client_stub_class=client_stub, registration_function=registration_function)
+    return GRPCService(
+        descriptor=service_descriptor,
+        service_class=service_class,
+        client_stub_class=client_stub,
+        registration_function=registration_function,
+    )
 
 
 def _json_to_service_descriptor(
@@ -268,6 +277,7 @@ def _service_descriptor_to_server_registration_function(
     Returns:
         function:  Server registration function to add service handlers to a server
     """
+
     def _get_handler(method: _RPCMethod):
         if method.input_streaming and method.output_streaming:
             return grpc.stream_stream_rpc_method_handler
@@ -295,7 +305,9 @@ def _service_descriptor_to_server_registration_function(
     return registration_function
 
 
-def _get_rpc_methods(service_descriptor: ServiceDescriptor, json_service_def: ServiceJsonType) -> List[_RPCMethod]:
+def _get_rpc_methods(
+    service_descriptor: ServiceDescriptor, json_service_def: ServiceJsonType
+) -> List[_RPCMethod]:
     """Get list of RPC methods from a service descriptor
 
     Args:
@@ -328,7 +340,7 @@ def _get_rpc_methods(service_descriptor: ServiceDescriptor, json_service_def: Se
                 input_message_class=input_message_class,
                 output_message_class=output_message_class,
                 input_streaming=_is_input_streaming(json_service_def, method.name),
-                output_streaming=_is_output_streaming(json_service_def, method.name)
+                output_streaming=_is_output_streaming(json_service_def, method.name),
             )
         )
 

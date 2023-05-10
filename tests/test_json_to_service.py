@@ -3,9 +3,7 @@ Tests for json_to_service functions
 """
 # Standard
 from concurrent import futures
-from typing import Iterator
 import os
-import time
 import types
 
 # Third Party
@@ -14,9 +12,7 @@ import pytest
 
 # Local
 from py_to_proto import descriptor_to_message_class
-from py_to_proto.json_to_service import (
-    json_to_service,
-)
+from py_to_proto.json_to_service import json_to_service
 from py_to_proto.jtd_to_proto import jtd_to_proto
 
 ## Helpers #####################################################################
@@ -295,9 +291,7 @@ def test_service_descriptor_to_registration_function(foo_service):
     )
 
 
-def test_end_to_end_unary_unary_integration(
-    foo_message, bar_message, foo_service
-):
+def test_end_to_end_unary_unary_integration(foo_message, bar_message, foo_service):
     """Test a full grpc service integration"""
     registration_fn = foo_service.registration_function
     service_class = foo_service.service_class
@@ -341,9 +335,7 @@ def test_end_to_end_unary_unary_integration(
     server.stop(grace=0)
 
 
-def test_end_to_end_output_streaming_integration(
-    foo_message, bar_message, temp_dpool
-):
+def test_end_to_end_output_streaming_integration(foo_message, bar_message, temp_dpool):
     service_json = {
         "service": {
             "rpcs": [
@@ -400,9 +392,7 @@ def test_end_to_end_output_streaming_integration(
     server.stop(grace=0)
 
 
-def test_end_to_end_input_streaming_integration(
-    foo_message, bar_message, temp_dpool
-):
+def test_end_to_end_input_streaming_integration(foo_message, bar_message, temp_dpool):
     service_json = {
         "service": {
             "rpcs": [
@@ -488,7 +478,9 @@ def test_end_to_end_input_and_output_streaming_integration(
             for i in request_stream:
                 count += i.bar
 
-            return iter(map(lambda i: bar_message(boo=int(count), baz=True), range(100)))
+            return iter(
+                map(lambda i: bar_message(boo=int(count), baz=True), range(100))
+            )
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     registration_fn(Servicer(), server)
