@@ -45,7 +45,7 @@ def descriptor_to_message_class(
         try:
             message_class = descriptor._concrete_class
         except (TypeError, SystemError, AttributeError):
-            # protobuf < 3.20 compatibility:
+            # protobuf version compatibility
             if hasattr(reflection.message_factory, "GetMessageClass"):
                 # Newer protobuf versions use GetMessageClass
                 message_class = reflection.message_factory.GetMessageClass(

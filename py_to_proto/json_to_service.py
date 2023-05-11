@@ -109,6 +109,9 @@ def json_to_service(
     service_fd_proto = _json_to_service_file_descriptor_proto(
         name, package, json_service_def, descriptor_pool=descriptor_pool
     )
+    assert (
+        len(service_fd_proto.service) == 1
+    ), f"File Descriptor {service_fd_proto.name} should only have one service"
     service_descriptor_proto = service_fd_proto.service[0]
 
     # Then put that in the pool to get the real descriptor back
