@@ -45,9 +45,7 @@ def descriptor_to_message_class(
         try:
             message_class = descriptor._concrete_class
         except (TypeError, SystemError, AttributeError):
-            message_class = reflection.message_factory.MessageFactory().GetPrototype(
-                descriptor
-            )
+            message_class = reflection.message_factory.GetMessageClass(descriptor)
 
         # Recursively add nested messages
         for nested_message_descriptor in descriptor.nested_types:
