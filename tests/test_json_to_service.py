@@ -9,6 +9,7 @@ import types
 # Third Party
 import grpc
 import pytest
+import tls_test_tools
 
 # Local
 from py_to_proto import descriptor_to_message_class
@@ -311,12 +312,12 @@ def test_end_to_end_unary_unary_integration(foo_message, bar_message, foo_servic
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     registration_fn(Servicer(), server)
-    # TODO: find available port for these tests so they don't clobber each other
-    server.add_insecure_port("[::]:9002")
+    open_port = tls_test_tools.open_port()
+    server.add_insecure_port(f"[::]:{open_port}")
     server.start()
 
     # Create the client-side connection
-    chan = grpc.insecure_channel("localhost:9002")
+    chan = grpc.insecure_channel(f"localhost:{open_port}")
     my_stub = stub_class(chan)
     # nb: we'll set "foo" to the existence of "bar" to put asserts in the request handler
     input = foo_message(foo=True, bar=-9000)
@@ -367,11 +368,12 @@ def test_end_to_end_server_streaming_integration(foo_message, bar_message, temp_
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     registration_fn(Servicer(), server)
-    server.add_insecure_port("[::]:9001")
+    open_port = tls_test_tools.open_port()
+    server.add_insecure_port(f"[::]:{open_port}")
     server.start()
 
     # Create the client-side connection
-    chan = grpc.insecure_channel("localhost:9001")
+    chan = grpc.insecure_channel(f"localhost:{open_port}")
     my_stub = stub_class(chan)
     input = foo_message(foo=True, bar=-9000)
 
@@ -419,11 +421,12 @@ def test_end_to_end_client_streaming_integration(foo_message, bar_message, temp_
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     registration_fn(Servicer(), server)
-    server.add_insecure_port("[::]:9003")
+    open_port = tls_test_tools.open_port()
+    server.add_insecure_port(f"[::]:{open_port}")
     server.start()
 
     # Create the client-side connection
-    chan = grpc.insecure_channel("localhost:9003")
+    chan = grpc.insecure_channel(f"localhost:{open_port}")
     my_stub = stub_class(chan)
     input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
 
@@ -475,11 +478,12 @@ def test_end_to_end_client_and_server_streaming_integration(
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     registration_fn(Servicer(), server)
-    server.add_insecure_port("[::]:9004")
+    open_port = tls_test_tools.open_port()
+    server.add_insecure_port(f"[::]:{open_port}")
     server.start()
 
     # Create the client-side connection
-    chan = grpc.insecure_channel("localhost:9004")
+    chan = grpc.insecure_channel(f"localhost:{open_port}")
     my_stub = stub_class(chan)
     input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
 
