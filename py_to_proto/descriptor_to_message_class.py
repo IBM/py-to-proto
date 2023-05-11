@@ -45,9 +45,17 @@ def descriptor_to_message_class(
         try:
             message_class = descriptor._concrete_class
         except (TypeError, SystemError, AttributeError):
-            message_class = reflection.message_factory.MessageFactory().GetPrototype(
-                descriptor
-            )
+            # protobuf version compatibility
+            if hasattr(reflection.message_factory, "GetMessageClass"):
+                # Newer protobuf versions use GetMessageClass
+                message_class = reflection.message_factory.GetMessageClass(
+                    descriptor
+                )  # pragma: no cover
+            else:
+                # Older protobuf versions require creating an instance of a MessageFactory
+                message_class = (
+                    reflection.message_factory.MessageFactory().GetPrototype(descriptor)
+                )  # pragma: no cover
 
         # Recursively add nested messages
         for nested_message_descriptor in descriptor.nested_types:
