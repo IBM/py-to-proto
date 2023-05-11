@@ -443,7 +443,7 @@ def test_end_to_end_client_streaming_integration(foo_message, bar_message, temp_
     server.stop(grace=0)
 
 
-def test_end_to_end_input_and_server_streaming_integration(
+def test_end_to_end_client_and_server_streaming_integration(
     foo_message, bar_message, temp_dpool
 ):
     service_json = {

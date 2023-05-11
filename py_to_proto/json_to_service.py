@@ -71,7 +71,7 @@ def json_to_service(
     *,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> GRPCService:
-    """Convert a JSON representation of an RPC service into a ServiceDescriptor.
+    """Convert a JSON representation of an RPC service into a GRPCService.
 
     Reference: https://jsontypedef.com/docs/jtd-in-5-minutes/
 
@@ -89,12 +89,12 @@ def json_to_service(
             message descriptors
 
     Returns:
-        groc_service:  GRPCService
+        grpc_service:  GRPCService
             The GRPCService container with the service descriptor and other associated
             grpc bits required to boot a server:
+            - Servicer registration function
             - Client stub class
             - Servicer base class
-            - Servicer registration function
     """
     # Ensure we have a valid service spec
     log.debug2("Validating service json")
@@ -201,8 +201,8 @@ def _service_descriptor_to_service(
 
     Returns:
         Type[google.protobuf.service.Service]
-            A new class with metaclass google.protobuf.service_reflection.GeneratedServiceType containing the methods
-            from the service_descriptor
+            A new class with metaclass google.protobuf.service_reflection.GeneratedServiceType
+            containing the methods from the service_descriptor
     """
     service_class = types.new_class(
         service_descriptor.name,
@@ -222,10 +222,11 @@ def _service_descriptor_to_client_stub(
     """Generates a new client stub class from the service descriptor
 
     Args:
-        service_descriptor (google.protobuf.descriptor.ServiceDescriptor):
+        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor to generate a service interface for
-        service_descriptor_proto (google.protobuf.descriptor_pb2.ServiceDescriptorProto):
-            The descriptor proto for that service. This holds the I/O streaming information for each method
+        service_descriptor_proto:  google.protobuf.descriptor_pb2.ServiceDescriptorProto
+            The descriptor proto for that service. This holds the I/O streaming information
+            for each method
     """
 
     def _get_channel_func(
@@ -278,8 +279,10 @@ def _service_descriptor_to_server_registration_function(
     Args:
         service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor to generate a service interface for
-        service_descriptor_proto (google.protobuf.descriptor_pb2.ServiceDescriptorProto):
-            The descriptor proto for that service. This holds the I/O streaming information for each method
+        service_descriptor_proto:  google.protobuf.descriptor_pb2.ServiceDescriptorProto
+            The descriptor proto for that service. This holds the I/O streaming information
+            for each method
+
     Returns:
         function:  Server registration function to add service handlers to a server
     """
