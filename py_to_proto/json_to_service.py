@@ -1,14 +1,13 @@
 # Standard
-from typing import Callable, Dict, List, Optional, Set, Type
+from typing import Callable, Dict, List, Optional, Type
 import dataclasses
 import types
 
 # Third Party
-from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import service
-from google.protobuf.descriptor import ServiceDescriptor
+from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
 import grpc
@@ -191,7 +190,7 @@ def _json_to_service_file_descriptor_proto(
 
 
 def _service_descriptor_to_service(
-    service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor: ServiceDescriptor,
 ) -> Type[service.Service]:
     """Create a service class from a service descriptor
 
@@ -216,7 +215,7 @@ def _service_descriptor_to_service(
 
 
 def _service_descriptor_to_client_stub(
-    service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor: ServiceDescriptor,
     service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
 ) -> Type:
     """Generates a new client stub class from the service descriptor
@@ -271,7 +270,7 @@ def _service_descriptor_to_client_stub(
 
 
 def _service_descriptor_to_server_registration_function(
-    service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor: ServiceDescriptor,
     service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
 ) -> Callable[[Service, grpc.Server], None]:
     """Generates a server registration function from the service descriptor
@@ -320,6 +319,6 @@ def _service_descriptor_to_server_registration_function(
     return registration_function
 
 
-def _get_method_fullname(method: _descriptor.MethodDescriptor):
+def _get_method_fullname(method: MethodDescriptor):
     method_name_parts = method.full_name.split(".")
     return f"/{'.'.join(method_name_parts[:-1])}/{method_name_parts[-1]}"
