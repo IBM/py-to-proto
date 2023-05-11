@@ -456,3 +456,71 @@ def test_end_to_end_client_and_server_streaming_integration(
         for i, bar in enumerate(client.FooPredict(input)):
             assert bar.boo == 4950  # sum of range(100)
         assert i == 99
+
+
+def test_multiple_rpcs_with_streaming(foo_message, bar_message, temp_dpool):
+
+    service_json = {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "BarPredict",
+                    "input_type": "foo.bar.Foo",
+                    "client_streaming": True,
+                    "output_type": "foo.bar.Bar",
+                    "server_streaming": True,
+                },
+                {
+                    "name": "FooPredict",
+                    "input_type": "foo.bar.Foo",
+                    "client_streaming": True,
+                    "output_type": "foo.bar.Foo",
+                    "server_streaming": True,
+                },
+            ]
+        }
+    }
+    service = json_to_service(
+        package="foo.bar",
+        name="FooService",
+        json_service_def=service_json,
+        descriptor_pool=temp_dpool,
+    )
+
+    registration_fn = service.registration_function
+    service_class = service.service_class
+    stub_class = service.client_stub_class
+
+    class Servicer(service_class):
+        """gRPC Service Impl"""
+
+        def BarPredict(self, request_stream, context):
+            count = 0
+            for i in request_stream:
+                count += i.bar
+
+            return iter(
+                map(lambda i: bar_message(boo=int(count), baz=True), range(100))
+            )
+
+        def FooPredict(self, request_stream, context):
+            count = 0.0
+            for j in request_stream:
+                count += j.bar
+
+            return iter(
+                map(lambda i: foo_message(foo=True, bar=float(count)), range(10))
+            )
+
+    with _test_server_client(service, Servicer) as client:
+        request = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
+
+        # Make a gRPC call
+        for i, bar in enumerate(client.BarPredict(request)):
+            assert bar.boo == 4950  # sum of range(100)
+        assert i == 99
+
+        request_2 = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
+        for i, foo in enumerate(client.FooPredict(request_2)):
+            assert foo.bar == 4950.0  # sum of range(100)
+        assert i == 9
