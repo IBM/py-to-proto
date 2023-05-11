@@ -3,6 +3,8 @@ Tests for json_to_service functions
 """
 # Standard
 from concurrent import futures
+from contextlib import contextmanager
+from typing import Type
 import os
 import types
 
@@ -13,7 +15,7 @@ import tls_test_tools
 
 # Local
 from py_to_proto import descriptor_to_message_class
-from py_to_proto.json_to_service import json_to_service
+from py_to_proto.json_to_service import GRPCService, json_to_service
 from py_to_proto.jtd_to_proto import jtd_to_proto
 
 ## Helpers #####################################################################
@@ -60,10 +62,8 @@ def bar_message(temp_dpool):
 
 
 @pytest.fixture
-def foo_service(temp_dpool, foo_message, bar_message):
-    """Service descriptor fixture"""
-    # foo_message needs to have been defined for these input/output message to be valid
-    service_json = {
+def foo_service_json():
+    return {
         "service": {
             "rpcs": [
                 {
@@ -74,12 +74,39 @@ def foo_service(temp_dpool, foo_message, bar_message):
             ]
         }
     }
+
+
+@pytest.fixture
+def foo_service(temp_dpool, foo_message, bar_message, foo_service_json):
+    """Service descriptor fixture"""
     return json_to_service(
         package="foo.bar",
         name="FooService",
-        json_service_def=service_json,
+        json_service_def=foo_service_json,
         descriptor_pool=temp_dpool,
     )
+
+
+@contextmanager
+def _test_server_client(
+    grpc_service: GRPCService,
+    servicer_impl_class: Type,
+):
+    # boot the server
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
+    grpc_service.registration_function(servicer_impl_class(), server)
+    open_port = tls_test_tools.open_port()
+    server.add_insecure_port(f"[::]:{open_port}")
+    server.start()
+
+    # open a client connection
+    # Create the client-side connection
+    chan = grpc.insecure_channel(f"localhost:{open_port}")
+    my_stub = grpc_service.client_stub_class(chan)
+
+    yield my_stub
+
+    server.stop(grace=0)
 
 
 ## Tests #######################################################################
@@ -292,14 +319,12 @@ def test_service_descriptor_to_registration_function(foo_service):
     )
 
 
-def test_end_to_end_unary_unary_integration(foo_message, bar_message, foo_service):
+def test_end_to_end_unary_unary_integration(
+    foo_message, bar_message, foo_service, temp_dpool
+):
     """Test a full grpc service integration"""
-    registration_fn = foo_service.registration_function
-    service_class = foo_service.service_class
-    stub_class = foo_service.client_stub_class
-
     # Define and start a gRPC service
-    class Servicer(service_class):
+    class Servicer(foo_service.service_class):
         """gRPC Service Impl"""
 
         def FooPredict(self, request, context):
@@ -310,30 +335,20 @@ def test_end_to_end_unary_unary_integration(foo_message, bar_message, foo_servic
                 assert not request.HasField("bar")
             return bar_message(boo=42, baz=True)
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
-    registration_fn(Servicer(), server)
-    open_port = tls_test_tools.open_port()
-    server.add_insecure_port(f"[::]:{open_port}")
-    server.start()
+    with _test_server_client(foo_service, Servicer) as client:
+        # nb: we'll set "foo" to the existence of "bar" to put asserts in the request handler
+        input = foo_message(foo=True, bar=-9000)
 
-    # Create the client-side connection
-    chan = grpc.insecure_channel(f"localhost:{open_port}")
-    my_stub = stub_class(chan)
-    # nb: we'll set "foo" to the existence of "bar" to put asserts in the request handler
-    input = foo_message(foo=True, bar=-9000)
+        # Make a gRPC call
+        response = client.FooPredict(request=input)
+        assert isinstance(response, bar_message)
+        assert response.boo == 42
+        assert response.baz
 
-    # Make a gRPC call
-    response = my_stub.FooPredict(request=input)
-    assert isinstance(response, bar_message)
-    assert response.boo == 42
-    assert response.baz
-
-    # Test that we can not set `bar` and correctly check that it was not set on the server side
-    input = foo_message(foo=False)
-    response = my_stub.FooPredict(request=input)
-    assert isinstance(response, bar_message)
-
-    server.stop(grace=0)
+        # Test that we can not set `bar` and correctly check that it was not set on the server side
+        input = foo_message(foo=False)
+        response = client.FooPredict(request=input)
+        assert isinstance(response, bar_message)
 
 
 def test_end_to_end_server_streaming_integration(foo_message, bar_message, temp_dpool):
@@ -356,33 +371,16 @@ def test_end_to_end_server_streaming_integration(foo_message, bar_message, temp_
         descriptor_pool=temp_dpool,
     )
 
-    registration_fn = service.registration_function
-    service_class = service.service_class
-    stub_class = service.client_stub_class
-
-    class Servicer(service_class):
+    class Servicer(service.service_class):
         """gRPC Service Impl"""
 
         def FooPredict(self, request, context):
             return iter(map(lambda i: bar_message(boo=i, baz=True), range(100)))
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
-    registration_fn(Servicer(), server)
-    open_port = tls_test_tools.open_port()
-    server.add_insecure_port(f"[::]:{open_port}")
-    server.start()
-
-    # Create the client-side connection
-    chan = grpc.insecure_channel(f"localhost:{open_port}")
-    my_stub = stub_class(chan)
-    input = foo_message(foo=True, bar=-9000)
-
-    # Make a gRPC call
-    for i, bar in enumerate(my_stub.FooPredict(request=input)):
-        assert bar.boo == i
-    assert i == 99
-
-    server.stop(grace=0)
+    with _test_server_client(service, Servicer) as client:
+        for i, bar in enumerate(client.FooPredict(request=foo_message())):
+            assert bar.boo == i
+        assert i == 99
 
 
 def test_end_to_end_client_streaming_integration(foo_message, bar_message, temp_dpool):
@@ -405,36 +403,18 @@ def test_end_to_end_client_streaming_integration(foo_message, bar_message, temp_
         descriptor_pool=temp_dpool,
     )
 
-    registration_fn = service.registration_function
-    service_class = service.service_class
-    stub_class = service.client_stub_class
-
-    class Servicer(service_class):
+    class Servicer(service.service_class):
         """gRPC Service Impl"""
 
         def FooPredict(self, request_stream, context):
-            count = 0
-            for i in request_stream:
-                count += i.bar
+            return bar_message(boo=int(sum(i.bar for i in request_stream)), baz=True)
 
-            return bar_message(boo=int(count), baz=True)
+    with _test_server_client(service, Servicer) as client:
+        input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
-    registration_fn(Servicer(), server)
-    open_port = tls_test_tools.open_port()
-    server.add_insecure_port(f"[::]:{open_port}")
-    server.start()
-
-    # Create the client-side connection
-    chan = grpc.insecure_channel(f"localhost:{open_port}")
-    my_stub = stub_class(chan)
-    input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
-
-    # Make a gRPC call
-    response = my_stub.FooPredict(input)
-    assert response.boo == 4950  # sum of range(100)
-
-    server.stop(grace=0)
+        # Make a gRPC call
+        response = client.FooPredict(input)
+        assert response.boo == 4950  # sum of range(100)
 
 
 def test_end_to_end_client_and_server_streaming_integration(
@@ -460,36 +440,19 @@ def test_end_to_end_client_and_server_streaming_integration(
         descriptor_pool=temp_dpool,
     )
 
-    registration_fn = service.registration_function
-    service_class = service.service_class
-    stub_class = service.client_stub_class
-
-    class Servicer(service_class):
+    class Servicer(service.service_class):
         """gRPC Service Impl"""
 
         def FooPredict(self, request_stream, context):
-            count = 0
-            for i in request_stream:
-                count += i.bar
-
+            count = sum(i.bar for i in request_stream)
             return iter(
                 map(lambda i: bar_message(boo=int(count), baz=True), range(100))
             )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
-    registration_fn(Servicer(), server)
-    open_port = tls_test_tools.open_port()
-    server.add_insecure_port(f"[::]:{open_port}")
-    server.start()
+    with _test_server_client(service, Servicer) as client:
+        input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
 
-    # Create the client-side connection
-    chan = grpc.insecure_channel(f"localhost:{open_port}")
-    my_stub = stub_class(chan)
-    input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
-
-    # Make a gRPC call
-    for i, bar in enumerate(my_stub.FooPredict(input)):
-        assert bar.boo == 4950  # sum of range(100)
-    assert i == 99
-
-    server.stop(grace=0)
+        # Make a gRPC call
+        for i, bar in enumerate(client.FooPredict(input)):
+            assert bar.boo == 4950  # sum of range(100)
+        assert i == 99
