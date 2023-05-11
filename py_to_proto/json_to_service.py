@@ -227,6 +227,7 @@ def _service_descriptor_to_client_stub(
             The descriptor proto for that service. This holds the I/O streaming information
             for each method
     """
+    _assert_method_lists_same(service_descriptor, service_descriptor_proto)
 
     def _get_channel_func(
         channel: grpc.Channel, method: descriptor_pb2.MethodDescriptorProto
@@ -285,6 +286,7 @@ def _service_descriptor_to_server_registration_function(
     Returns:
         function:  Server registration function to add service handlers to a server
     """
+    _assert_method_lists_same(service_descriptor, service_descriptor_proto)
 
     def _get_handler(method: descriptor_pb2.MethodDescriptorProto):
         if method.client_streaming and method.server_streaming:
@@ -322,3 +324,17 @@ def _service_descriptor_to_server_registration_function(
 def _get_method_fullname(method: MethodDescriptor):
     method_name_parts = method.full_name.split(".")
     return f"/{'.'.join(method_name_parts[:-1])}/{method_name_parts[-1]}"
+
+
+def _assert_method_lists_same(
+    service_descriptor: ServiceDescriptor,
+    service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
+):
+    assert len(service_descriptor.methods) == len(service_descriptor_proto.method), (
+        f"Method count mismatch: {service_descriptor.full_name} has"
+        f" {len(service_descriptor.methods)} methods but proto descriptor"
+        f" {service_descriptor_proto.name} has {len(service_descriptor_proto.method)} methods"
+    )
+
+    for m1, m2 in zip(service_descriptor.methods, service_descriptor_proto.method):
+        assert m1.name == m2.name, f"Method mismatch: {m1.name}, {m2.name}"
