@@ -89,8 +89,12 @@ def json_to_service(
             message descriptors
 
     Returns:
-        descriptor:  google.protobuf.descriptor.ServiceDescriptor
-            The ServiceDescriptor corresponding to this json definition
+        groc_service:  GRPCService
+            The GRPCService container with the service descriptor and other associated
+            grpc bits required to boot a server:
+            - Client stub class
+            - Servicer base class
+            - Servicer registration function
     """
     # Ensure we have a valid service spec
     log.debug2("Validating service json")
@@ -114,10 +118,6 @@ def json_to_service(
     service_fullname = name if not package else ".".join([package, name])
     service_descriptor = descriptor_pool.FindServiceByName(service_fullname)
 
-    # And list of _RPCMethod bits for the client + registration function
-    # TODO NO
-    rpc_list = _get_rpc_methods(service_descriptor, json_service_def)
-
     # Then the client stub:
     client_stub = _service_descriptor_to_client_stub(
         service_descriptor, service_descriptor_proto
@@ -125,7 +125,7 @@ def json_to_service(
 
     # And the registration function:
     registration_function = _service_descriptor_to_server_registration_function(
-        service_descriptor, rpc_list
+        service_descriptor, service_descriptor_proto
     )
 
     # And service class!
@@ -146,6 +146,7 @@ def _json_to_service_file_descriptor_proto(
     *,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
 ) -> descriptor_pb2.FileDescriptorProto:
+    """Creates the FileDescriptorProto for the service definition"""
 
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
@@ -217,16 +218,6 @@ def _service_descriptor_to_service(
     return service_class
 
 
-@dataclasses.dataclass
-class _RPCMethod:
-    name: str
-    fullname: str
-    input_message_class: Type[message.Message]
-    output_message_class: Type[message.Message]
-    input_streaming: bool = False
-    output_streaming: bool = False
-
-
 def _service_descriptor_to_client_stub(
     service_descriptor: _descriptor.ServiceDescriptor,
     service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
@@ -236,6 +227,8 @@ def _service_descriptor_to_client_stub(
     Args:
         service_descriptor (google.protobuf.descriptor.ServiceDescriptor):
             The ServiceDescriptor to generate a service interface for
+        service_descriptor_proto (google.protobuf.descriptor_pb2.ServiceDescriptorProto):
+            The descriptor proto for that service. This holds the I/O streaming information for each method
     """
 
     def _get_channel_func(
@@ -280,36 +273,44 @@ def _service_descriptor_to_client_stub(
 
 
 def _service_descriptor_to_server_registration_function(
-    service_descriptor: _descriptor.ServiceDescriptor, methods: List[_RPCMethod]
+    service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
 ) -> Callable[[Service, grpc.Server], None]:
     """Generates a server registration function from the service descriptor
 
     Args:
         service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
             The ServiceDescriptor to generate a service interface for
-
+        service_descriptor_proto (google.protobuf.descriptor_pb2.ServiceDescriptorProto):
+            The descriptor proto for that service. This holds the I/O streaming information for each method
     Returns:
         function:  Server registration function to add service handlers to a server
     """
 
-    def _get_handler(method: _RPCMethod):
-        if method.input_streaming and method.output_streaming:
+    def _get_handler(method: descriptor_pb2.MethodDescriptorProto):
+        if method.client_streaming and method.server_streaming:
             return grpc.stream_stream_rpc_method_handler
-        if not method.input_streaming and method.output_streaming:
+        if not method.client_streaming and method.server_streaming:
             return grpc.unary_stream_rpc_method_handler
-        if method.input_streaming and not method.output_streaming:
+        if method.client_streaming and not method.server_streaming:
             return grpc.stream_unary_rpc_method_handler
         return grpc.unary_unary_rpc_method_handler
 
     def registration_function(servicer: Service, server: grpc.Server):
         """Server registration function"""
         rpc_method_handlers = {
-            method.name: _get_handler(method)(
+            method.name: _get_handler(method_proto)(
                 getattr(servicer, method.name),
-                request_deserializer=method.input_message_class.FromString,
-                response_serializer=method.output_message_class.SerializeToString,
+                request_deserializer=descriptor_to_message_class(
+                    method.input_type
+                ).FromString,
+                response_serializer=descriptor_to_message_class(
+                    method.output_type
+                ).SerializeToString,
             )
-            for method in methods
+            for method, method_proto in zip(
+                service_descriptor.methods, service_descriptor_proto.method
+            )
         }
         generic_handler = grpc.method_handlers_generic_handler(
             service_descriptor.full_name, rpc_method_handlers
@@ -317,64 +318,6 @@ def _service_descriptor_to_server_registration_function(
         server.add_generic_rpc_handlers((generic_handler,))
 
     return registration_function
-
-
-def _get_rpc_methods(
-    service_descriptor: ServiceDescriptor, json_service_def: ServiceJsonType
-) -> List[_RPCMethod]:
-    """Get list of RPC methods from a service descriptor
-
-    Args:
-        service_descriptor:  google.protobuf.descriptor.ServiceDescriptor
-            The ServiceDescriptor to get RPC methods for
-
-    Returns:
-        List of RPC methods
-    """
-    # For each method, need to know input / output message
-    methods: List[_RPCMethod] = []
-
-    for method in service_descriptor.methods:
-        method: _descriptor.MethodDescriptor
-
-        input_descriptor: _descriptor.Descriptor = method.input_type
-        output_descriptor: _descriptor.Descriptor = method.output_type
-
-        input_message_class = descriptor_to_message_class(input_descriptor)
-        output_message_class = descriptor_to_message_class(output_descriptor)
-
-        method_name_parts = method.full_name.split(".")
-        method_full_name = (
-            f"/{'.'.join(method_name_parts[:-1])}/{method_name_parts[-1]}"
-        )
-        methods.append(
-            _RPCMethod(
-                name=method.name,
-                fullname=method_full_name,
-                input_message_class=input_message_class,
-                output_message_class=output_message_class,
-                input_streaming=_is_input_streaming(json_service_def, method.name),
-                output_streaming=_is_output_streaming(json_service_def, method.name),
-            )
-        )
-
-    return methods
-
-
-def _is_input_streaming(json_service_def: ServiceJsonType, method_name: str) -> bool:
-    json_service = json_service_def["service"]
-    rpcs_def = json_service["rpcs"]
-    for method in rpcs_def:
-        if method["name"] == method_name:
-            return method.get("input_streaming", False)
-
-
-def _is_output_streaming(json_service_def: ServiceJsonType, method_name: str) -> bool:
-    json_service = json_service_def["service"]
-    rpcs_def = json_service["rpcs"]
-    for method in rpcs_def:
-        if method["name"] == method_name:
-            return method.get("output_streaming", False)
 
 
 def _get_method_fullname(method: _descriptor.MethodDescriptor):
