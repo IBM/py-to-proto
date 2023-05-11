@@ -7,7 +7,7 @@ import types
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
-from google.protobuf import message, service
+from google.protobuf import service
 from google.protobuf.descriptor import ServiceDescriptor
 from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
@@ -38,8 +38,8 @@ SERVICE_JTD_SCHEMA = {
                             "output_type": {"type": "string"},
                         },
                         "optionalProperties": {
-                            "output_streaming": {"type": "boolean"},
-                            "input_streaming": {"type": "boolean"},
+                            "server_streaming": {"type": "boolean"},
+                            "client_streaming": {"type": "boolean"},
                         },
                     }
                 }
@@ -160,16 +160,13 @@ def _json_to_service_file_descriptor_proto(
         rpc_output_type = rpc_def["output_type"]
         output_descriptor = descriptor_pool.FindMessageTypeByName(rpc_output_type)
 
-        output_streaming = rpc_def.get("output_streaming", False)
-        input_streaming = rpc_def.get("input_streaming", False)
-
         method_descriptor_protos.append(
             descriptor_pb2.MethodDescriptorProto(
                 name=rpc_def["name"],
                 input_type=input_descriptor.full_name,
                 output_type=output_descriptor.full_name,
-                client_streaming=input_streaming,
-                server_streaming=output_streaming,
+                client_streaming=rpc_def.get("client_streaming", False),
+                server_streaming=rpc_def.get("server_streaming", False),
             )
         )
         imports.append(input_descriptor.file.name)

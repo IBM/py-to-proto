@@ -335,7 +335,7 @@ def test_end_to_end_unary_unary_integration(foo_message, bar_message, foo_servic
     server.stop(grace=0)
 
 
-def test_end_to_end_output_streaming_integration(foo_message, bar_message, temp_dpool):
+def test_end_to_end_server_streaming_integration(foo_message, bar_message, temp_dpool):
     service_json = {
         "service": {
             "rpcs": [
@@ -343,7 +343,7 @@ def test_end_to_end_output_streaming_integration(foo_message, bar_message, temp_
                     "name": "FooPredict",
                     "input_type": "foo.bar.Foo",
                     "output_type": "foo.bar.Bar",
-                    "output_streaming": True,
+                    "server_streaming": True,
                 }
             ]
         }
@@ -392,14 +392,14 @@ def test_end_to_end_output_streaming_integration(foo_message, bar_message, temp_
     server.stop(grace=0)
 
 
-def test_end_to_end_input_streaming_integration(foo_message, bar_message, temp_dpool):
+def test_end_to_end_client_streaming_integration(foo_message, bar_message, temp_dpool):
     service_json = {
         "service": {
             "rpcs": [
                 {
                     "name": "FooPredict",
                     "input_type": "foo.bar.Foo",
-                    "input_streaming": True,
+                    "client_streaming": True,
                     "output_type": "foo.bar.Bar",
                 }
             ]
@@ -443,7 +443,7 @@ def test_end_to_end_input_streaming_integration(foo_message, bar_message, temp_d
     server.stop(grace=0)
 
 
-def test_end_to_end_input_and_output_streaming_integration(
+def test_end_to_end_input_and_server_streaming_integration(
     foo_message, bar_message, temp_dpool
 ):
     service_json = {
@@ -452,9 +452,9 @@ def test_end_to_end_input_and_output_streaming_integration(
                 {
                     "name": "FooPredict",
                     "input_type": "foo.bar.Foo",
-                    "input_streaming": True,
+                    "client_streaming": True,
                     "output_type": "foo.bar.Bar",
-                    "output_streaming": True,
+                    "server_streaming": True,
                 }
             ]
         }
