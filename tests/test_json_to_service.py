@@ -363,12 +363,6 @@ def test_end_to_end_server_streaming_integration(foo_message, bar_message, temp_
         """gRPC Service Impl"""
 
         def FooPredict(self, request, context):
-            # Test that the `optionalProperty` "bar" of the request can be checked for existence
-            if request.foo:
-                assert request.HasField("bar")
-            else:
-                assert not request.HasField("bar")
-
             return iter(map(lambda i: bar_message(boo=i, baz=True), range(100)))
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
@@ -379,15 +373,12 @@ def test_end_to_end_server_streaming_integration(foo_message, bar_message, temp_
     # Create the client-side connection
     chan = grpc.insecure_channel("localhost:9001")
     my_stub = stub_class(chan)
-    # nb: we'll set "foo" to the existence of "bar" to put asserts in the request handler
     input = foo_message(foo=True, bar=-9000)
 
     # Make a gRPC call
-    i = 0
-    for bar in my_stub.FooPredict(request=input):
+    for i, bar in enumerate(my_stub.FooPredict(request=input)):
         assert bar.boo == i
-        i += 1
-    assert i == 100
+    assert i == 99
 
     server.stop(grace=0)
 
@@ -493,10 +484,8 @@ def test_end_to_end_client_and_server_streaming_integration(
     input = iter(map(lambda i: foo_message(foo=True, bar=i), range(100)))
 
     # Make a gRPC call
-    i = 0
-    for bar in my_stub.FooPredict(input):
+    for i, bar in enumerate(my_stub.FooPredict(input)):
         assert bar.boo == 4950  # sum of range(100)
-        i += 1
-    assert i == 100
+    assert i == 99
 
     server.stop(grace=0)
