@@ -459,7 +459,7 @@ def test_end_to_end_client_and_server_streaming_integration(
 
 
 def test_multiple_rpcs_with_streaming(foo_message, bar_message, temp_dpool):
-
+    """ensuring that everything works with more than one endpoint"""
     service_json = {
         "service": {
             "rpcs": [
@@ -487,27 +487,17 @@ def test_multiple_rpcs_with_streaming(foo_message, bar_message, temp_dpool):
         descriptor_pool=temp_dpool,
     )
 
-    registration_fn = service.registration_function
-    service_class = service.service_class
-    stub_class = service.client_stub_class
-
-    class Servicer(service_class):
+    class Servicer(service.service_class):
         """gRPC Service Impl"""
 
         def BarPredict(self, request_stream, context):
-            count = 0
-            for i in request_stream:
-                count += i.bar
-
+            count = sum(i.bar for i in request_stream)
             return iter(
                 map(lambda i: bar_message(boo=int(count), baz=True), range(100))
             )
 
         def FooPredict(self, request_stream, context):
-            count = 0.0
-            for j in request_stream:
-                count += j.bar
-
+            count = sum(i.bar for i in request_stream)
             return iter(
                 map(lambda i: foo_message(foo=True, bar=float(count)), range(10))
             )
