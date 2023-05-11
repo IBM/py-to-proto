@@ -97,15 +97,31 @@ def json_to_service(
     if not validate_jtd(json_service_def, SERVICE_JTD_SCHEMA, EXTENDED_TYPE_VALIDATORS):
         raise ValueError("Invalid service json")
 
-    # First get the descriptor:
-    service_descriptor = _json_to_service_descriptor(
+    # And descriptor pool
+    if descriptor_pool is None:
+        log.debug2("Using the default descriptor pool")
+        descriptor_pool = _descriptor_pool.Default()
+
+    # First get the descriptor proto:
+    service_fd_proto = _json_to_service_file_descriptor_proto(
         name, package, json_service_def, descriptor_pool=descriptor_pool
     )
+    service_descriptor_proto = service_fd_proto.service[0]
+
+    # Then put that in the pool to get the real descriptor back
+    log.debug("Adding Descriptors to DescriptorPool")
+    safe_add_fd_to_pool(service_fd_proto, descriptor_pool)
+    service_fullname = name if not package else ".".join([package, name])
+    service_descriptor = descriptor_pool.FindServiceByName(service_fullname)
+
     # And list of _RPCMethod bits for the client + registration function
+    # TODO NO
     rpc_list = _get_rpc_methods(service_descriptor, json_service_def)
 
     # Then the client stub:
-    client_stub = _service_descriptor_to_client_stub(service_descriptor, rpc_list)
+    client_stub = _service_descriptor_to_client_stub(
+        service_descriptor, service_descriptor_proto
+    )
 
     # And the registration function:
     registration_function = _service_descriptor_to_server_registration_function(
@@ -123,20 +139,16 @@ def json_to_service(
     )
 
 
-def _json_to_service_descriptor(
+def _json_to_service_file_descriptor_proto(
     name: str,
     package: str,
     json_service_def: ServiceJsonType,
     *,
     descriptor_pool: Optional[_descriptor_pool.DescriptorPool] = None,
-) -> ServiceDescriptor:
+) -> descriptor_pb2.FileDescriptorProto:
 
     method_descriptor_protos: List[descriptor_pb2.MethodDescriptorProto] = []
     imports: List[str] = []
-
-    if descriptor_pool is None:
-        log.debug2("Using the default descriptor pool")
-        descriptor_pool = _descriptor_pool.Default()
 
     json_service = json_service_def["service"]
     rpcs_def = json_service["rpcs"]
@@ -177,14 +189,7 @@ def _json_to_service_descriptor(
         service=[service_descriptor_proto],
     )
 
-    # Add the FileDescriptorProto to the Descriptor Pool
-    log.debug("Adding Descriptors to DescriptorPool")
-    safe_add_fd_to_pool(fd_proto, descriptor_pool)
-
-    # Return the descriptor for the top-level message
-    fullname = name if not package else ".".join([package, name])
-
-    return descriptor_pool.FindServiceByName(fullname)
+    return fd_proto
 
 
 def _service_descriptor_to_service(
@@ -223,7 +228,8 @@ class _RPCMethod:
 
 
 def _service_descriptor_to_client_stub(
-    service_descriptor: _descriptor.ServiceDescriptor, methods: List[_RPCMethod]
+    service_descriptor: _descriptor.ServiceDescriptor,
+    service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
 ) -> Type:
     """Generates a new client stub class from the service descriptor
 
@@ -232,26 +238,34 @@ def _service_descriptor_to_client_stub(
             The ServiceDescriptor to generate a service interface for
     """
 
-    def _get_channel_func(channel: grpc.Channel, method: _RPCMethod) -> Callable:
-        if method.input_streaming and method.output_streaming:
+    def _get_channel_func(
+        channel: grpc.Channel, method: descriptor_pb2.MethodDescriptorProto
+    ) -> Callable:
+        if method.client_streaming and method.server_streaming:
             return channel.stream_stream
-        if not method.input_streaming and method.output_streaming:
+        if not method.client_streaming and method.server_streaming:
             return channel.unary_stream
-        if method.input_streaming and not method.output_streaming:
+        if method.client_streaming and not method.server_streaming:
             return channel.stream_unary
         return channel.unary_unary
 
     # Initializer
     def initializer(self, channel: grpc.Channel):
         f"""Initializes a client stub with for the {service_descriptor.name} Service"""
-        for method in methods:
+        for method, method_proto in zip(
+            service_descriptor.methods, service_descriptor_proto.method
+        ):
             setattr(
                 self,
                 method.name,
-                _get_channel_func(channel, method)(
-                    method.fullname,
-                    request_serializer=method.input_message_class.SerializeToString,
-                    response_deserializer=method.output_message_class.FromString,
+                _get_channel_func(channel, method_proto)(
+                    _get_method_fullname(method),
+                    request_serializer=descriptor_to_message_class(
+                        method.input_type
+                    ).SerializeToString,
+                    response_deserializer=descriptor_to_message_class(
+                        method.output_type
+                    ).FromString,
                 ),
             )
 
@@ -361,3 +375,8 @@ def _is_output_streaming(json_service_def: ServiceJsonType, method_name: str) ->
     for method in rpcs_def:
         if method["name"] == method_name:
             return method.get("output_streaming", False)
+
+
+def _get_method_fullname(method: _descriptor.MethodDescriptor):
+    method_name_parts = method.full_name.split(".")
+    return f"/{'.'.join(method_name_parts[:-1])}/{method_name_parts[-1]}"
