@@ -92,14 +92,13 @@ def _test_server_client(
     grpc_service: GRPCService,
     servicer_impl_class: Type,
 ):
-    # boot the server
+    # Boot the server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
     grpc_service.registration_function(servicer_impl_class(), server)
     open_port = tls_test_tools.open_port()
     server.add_insecure_port(f"[::]:{open_port}")
     server.start()
 
-    # open a client connection
     # Create the client-side connection
     chan = grpc.insecure_channel(f"localhost:{open_port}")
     my_stub = grpc_service.client_stub_class(chan)
@@ -220,6 +219,30 @@ INVALID_DUPLICATE_SERVICES = [
                     "name": "FooTrain",
                     "input_type": "foo.bar.Foo",
                     "output_type": "foo.bar.Foo",  # Different output
+                }
+            ]
+        }
+    },
+    {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
+                    "client_streaming": True,  # Different client streaming
+                }
+            ]
+        }
+    },
+    {
+        "service": {
+            "rpcs": [
+                {
+                    "name": "FooTrain",
+                    "input_type": "foo.bar.Foo",
+                    "output_type": "foo.bar.Bar",
+                    "server_streaming": True,  # Different server streaming
                 }
             ]
         }
