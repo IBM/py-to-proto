@@ -243,7 +243,7 @@ def _are_same_method_descriptor(
         return False
     if not _are_types_similar(d1_method.output_type, d2_method.output_type):
         return False
-    # TODO: Add the ability for `json_to_service` to set options + streaming settings.
+    # TODO: Add the ability for `json_to_service` to set options
     # Then we can test this!
     if d1_method.options != d2_method.options:
         log.debug(  # pragma: no cover
@@ -251,9 +251,9 @@ def _are_same_method_descriptor(
         )
         return False  # pragma: no cover
     if d1_method.client_streaming != d2_method.client_streaming:
-        return False  # pragma: no cover
+        return False
     if d1_method.server_streaming != d2_method.server_streaming:
-        return False  # pragma: no cover
+        return False
     return True
 
 
