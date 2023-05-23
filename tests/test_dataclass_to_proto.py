@@ -330,8 +330,8 @@ def test_dataclass_to_proto_oneof_primitives(temp_dpool):
     desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
     assert len(desc.oneofs) == 1
     oneof_desc = desc.oneofs_by_name["foo"]
-    foobool_fld = desc.fields_by_name["foobool"]
-    foostr_fld = desc.fields_by_name["foostr"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    foostr_fld = desc.fields_by_name["foo_str"]
     assert foobool_fld.type == foobool_fld.TYPE_BOOL
     assert foobool_fld.containing_oneof is oneof_desc
     assert foostr_fld.type == foostr_fld.TYPE_STRING
@@ -358,8 +358,8 @@ def test_dataclass_to_proto_oneof_messages(temp_dpool):
     foostr_desc = bar_desc.nested_types_by_name["FooStr"]
     assert len(bar_desc.oneofs) == 1
     oneof_desc = bar_desc.oneofs_by_name["bar"]
-    fooint_fld = bar_desc.fields_by_name["barfooint"]
-    foostr_fld = bar_desc.fields_by_name["barfoostr"]
+    fooint_fld = bar_desc.fields_by_name["bar_fooint"]
+    foostr_fld = bar_desc.fields_by_name["bar_foostr"]
     assert fooint_fld.type == fooint_fld.TYPE_MESSAGE
     assert fooint_fld.message_type == fooint_desc
     assert fooint_fld.containing_oneof is oneof_desc
@@ -385,8 +385,8 @@ def test_dataclass_to_proto_oneof_mixed(temp_dpool):
     foostr_desc = bar_desc.nested_types_by_name["FooStr"]
     assert len(bar_desc.oneofs) == 1
     oneof_desc = bar_desc.oneofs_by_name["bar"]
-    fooint_fld = bar_desc.fields_by_name["barint"]
-    foostr_fld = bar_desc.fields_by_name["barfoostr"]
+    fooint_fld = bar_desc.fields_by_name["bar_int"]
+    foostr_fld = bar_desc.fields_by_name["bar_foostr"]
     assert fooint_fld.type == fooint_fld.TYPE_INT64
     assert fooint_fld.containing_oneof is oneof_desc
     assert foostr_fld.type == foostr_fld.TYPE_MESSAGE
@@ -528,10 +528,10 @@ def test_dataclass_to_proto_optional_field(temp_dpool):
     foo_fld = desc.fields_by_name["foo"]
     assert foo_fld.type == _descriptor.FieldDescriptor.TYPE_INT64
     oneof_desc = desc.oneofs_by_name["bar"]
-    barstr_fld = desc.fields_by_name["barstr"]
+    barstr_fld = desc.fields_by_name["bar_str"]
     assert barstr_fld.type == _descriptor.FieldDescriptor.TYPE_STRING
     assert barstr_fld.containing_oneof is oneof_desc
-    barint_fld = desc.fields_by_name["barint"]
+    barint_fld = desc.fields_by_name["bar_int"]
     assert barint_fld.type == _descriptor.FieldDescriptor.TYPE_INT64
     assert barint_fld.containing_oneof is oneof_desc
     baz_fld = desc.fields_by_name["baz"]
