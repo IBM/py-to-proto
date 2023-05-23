@@ -254,7 +254,7 @@ class DataclassConverter(ConverterBase):
                 if oneof_field_name is None:
                     res_type = self._resolve_wrapped_type(arg)
                     oneof_field_name = (
-                        f"{field_def.name}{str(res_type.__name__)}".lower()
+                        f"{field_def.name}_{str(res_type.__name__)}".lower()
                     )
                     log.debug3("Using default oneof field name: %s", oneof_field_name)
                 oneof_fields.append((oneof_field_name, arg))
