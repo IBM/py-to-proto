@@ -320,6 +320,88 @@ def test_dataclass_to_proto_repeated_enum(temp_dpool):
     assert bar_fld.enum_type == foo_desc
 
 
+def test_dataclass_to_proto_oneof_annotated_list_primitives(temp_dpool):
+    @dataclass
+    class Baz:
+        baz: Union[
+            Annotated[List[str], OneofField("baz_str_sequence")],
+            Annotated[List[int], OneofField("baz_int_sequence")],
+        ]
+
+    desc = dataclass_to_proto("foo.bar", Baz, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["baz"]
+
+    int_desc = desc.nested_types_by_name["IntSequence"]
+    str_desc = desc.nested_types_by_name["StrSequence"]
+
+    intseq_fld = desc.fields_by_name["baz_int_sequence"]
+    assert intseq_fld.type == intseq_fld.TYPE_MESSAGE
+    assert intseq_fld.message_type == int_desc
+    assert intseq_fld.containing_oneof is oneof_desc
+
+    strseq_fld = desc.fields_by_name["baz_str_sequence"]
+    assert strseq_fld.type == strseq_fld.TYPE_MESSAGE
+    assert strseq_fld.message_type == str_desc
+    assert strseq_fld.containing_oneof is oneof_desc
+
+    intseq_values_fld = int_desc.fields_by_name["values"]
+    assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
+    assert intseq_values_fld.label == intseq_values_fld.LABEL_REPEATED
+
+    strseq_values_fld = str_desc.fields_by_name["values"]
+    assert strseq_values_fld.type == strseq_values_fld.TYPE_STRING
+    assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
+
+
+def test_dataclass_to_proto_oneof_list_primitives(temp_dpool):
+    """Make sure that a oneof with lists of primitive fields works correctly"""
+
+    @dataclass
+    class Baz:
+        baz: Union[List[str], List[int]]
+
+    # The above behaves the same way as this:
+
+    # @dataclass
+    # class Baz:
+
+    #     @dataclass
+    #     class IntSequence:
+    #         values: List[int]
+
+    #     @dataclass
+    #     class StrSequence:
+    #         values: List[str]
+
+    #     baz: Union[IntSequence, StrSequence]
+
+    desc = dataclass_to_proto("foo.bar", Baz, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["baz"]
+
+    int_desc = desc.nested_types_by_name["IntSequence"]
+    str_desc = desc.nested_types_by_name["StrSequence"]
+
+    intseq_fld = desc.fields_by_name["baz_int_sequence"]
+    assert intseq_fld.type == intseq_fld.TYPE_MESSAGE
+    assert intseq_fld.message_type == int_desc
+    assert intseq_fld.containing_oneof is oneof_desc
+
+    strseq_fld = desc.fields_by_name["baz_str_sequence"]
+    assert strseq_fld.type == strseq_fld.TYPE_MESSAGE
+    assert strseq_fld.message_type == str_desc
+    assert strseq_fld.containing_oneof is oneof_desc
+
+    intseq_values_fld = int_desc.fields_by_name["values"]
+    assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
+    assert intseq_values_fld.label == intseq_values_fld.LABEL_REPEATED
+
+    strseq_values_fld = str_desc.fields_by_name["values"]
+    assert strseq_values_fld.type == strseq_values_fld.TYPE_STRING
+    assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
+
+
 def test_dataclass_to_proto_oneof_primitives(temp_dpool):
     """Make sure that a oneof with primitive fields works correctly"""
 
