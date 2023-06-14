@@ -254,7 +254,9 @@ class DataclassConverter(ConverterBase):
                 res_type = self._resolve_wrapped_type(arg)
                 # handle list type separately
                 if get_origin(res_type) is list:
-                    assert get_args(res_type), f"List {arg} does not have any arguments"
+                    assert get_args(
+                        res_type
+                    ), f"List {arg} does not have any type argument"
                     field_type = get_args(res_type)[0]
                     oneof_field_name = oneof_field_name or (
                         f"{field_def.name}_{str(field_type.__name__)}_sequence".lower()
