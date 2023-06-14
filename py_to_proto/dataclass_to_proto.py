@@ -252,9 +252,10 @@ class DataclassConverter(ConverterBase):
             for arg in get_args(field_type):
                 oneof_field_name = self._get_unique_annotation(arg, OneofField)
                 res_type = self._resolve_wrapped_type(arg)
-                # handle list types separately
-                if get_origin(arg) is list or get_origin(res_type) is list:
-                    field_type = self._get_raw_type_from_annotation(arg)
+                # handle list type separately
+                if get_origin(res_type) is list:
+                    assert get_args(res_type), f"List {arg} does not have any arguments"
+                    field_type = get_args(res_type)[0]
                     oneof_field_name = oneof_field_name or (
                         f"{field_def.name}_{str(field_type.__name__)}_sequence".lower()
                     )
@@ -341,16 +342,3 @@ class DataclassConverter(ConverterBase):
             if len(annos) > 1:
                 raise ValueError(f"Multiple {annotation_type} annotations found")
             return annos[0]
-
-    @classmethod
-    def _get_raw_type_from_annotation(cls, annotation_type: type) -> type:
-        """Recursively get raw type from given annotation,
-        for example typing.List[str] return str"""
-        args = get_args(annotation_type)
-        assert (
-            len(get_args(annotation_type)) > 0
-        ), f"Annotation {annotation_type} does not have any arguments"
-        first_arg = args[0]
-        if get_origin(first_arg) is list:
-            return cls._get_raw_type_from_annotation(first_arg)
-        return first_arg
