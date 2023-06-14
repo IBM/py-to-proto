@@ -320,7 +320,24 @@ def test_dataclass_to_proto_repeated_enum(temp_dpool):
     assert bar_fld.enum_type == foo_desc
 
 
+def test_dataclass_to_proto_oneof_no_type_in_list_raises(temp_dpool):
+    """If the List has no type argument, then exception is raised"""
+
+    @dataclass
+    class Baz:
+        baz: Union[
+            Annotated[List, OneofField("baz_str_sequence")],
+            Annotated[List, OneofField("baz_int_sequence")],
+        ]
+
+    with pytest.raises(AssertionError):
+        dataclass_to_proto("foo.bar", Baz, descriptor_pool=temp_dpool)
+
+
 def test_dataclass_to_proto_oneof_annotated_list_primitives(temp_dpool):
+    """Make sure that a oneof with lists of primitive fields within annotations
+    works correctly"""
+
     @dataclass
     class Baz:
         baz: Union[
