@@ -251,8 +251,21 @@ class DataclassConverter(ConverterBase):
         if get_origin(field_type) is Union:
             for arg in get_args(field_type):
                 oneof_field_name = self._get_unique_annotation(arg, OneofField)
-                if oneof_field_name is None:
-                    res_type = self._resolve_wrapped_type(arg)
+                res_type = self._resolve_wrapped_type(arg)
+                # handle list type separately
+                if get_origin(res_type) is list:
+                    assert get_args(
+                        res_type
+                    ), f"List {arg} does not have any type argument"
+                    field_type = get_args(res_type)[0]
+                    oneof_field_name = oneof_field_name or (
+                        f"{field_def.name}_{str(field_type.__name__)}_sequence".lower()
+                    )
+                    arg = dataclasses.make_dataclass(
+                        f"{str(field_type.__name__).capitalize()}Sequence",
+                        [("values", List[field_type])],
+                    )
+                elif oneof_field_name is None:
                     oneof_field_name = (
                         f"{field_def.name}_{str(res_type.__name__)}".lower()
                     )
