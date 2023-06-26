@@ -349,8 +349,8 @@ def test_dataclass_to_proto_oneof_annotated_list_primitives(temp_dpool):
     assert len(desc.oneofs) == 1
     oneof_desc = desc.oneofs_by_name["baz"]
 
-    int_desc = desc.nested_types_by_name["IntSequence"]
-    str_desc = desc.nested_types_by_name["StrSequence"]
+    int_desc = desc.nested_types_by_name["BazIntSequence"]
+    str_desc = desc.nested_types_by_name["BazStrSequence"]
 
     intseq_fld = desc.fields_by_name["baz_int_sequence"]
     assert intseq_fld.type == intseq_fld.TYPE_MESSAGE
@@ -377,38 +377,77 @@ def test_dataclass_to_proto_oneof_list_primitives(temp_dpool):
     @dataclass
     class Baz:
         baz: Union[List[str], List[int]]
+        bar: Union[List[str], List[int]]
 
-    # The above behaves the same way as this:
+    # The above behaves _almost_ the same way as this
+    # with some naming caveats for one-of fields being
+    # baz_bazintsequence instead of baz_int_sequence and
+    # bar_barintsequence instead of bar_int_sequence
 
     # @dataclass
     # class Baz:
 
     #     @dataclass
-    #     class IntSequence:
+    #     class BazIntSequence:
     #         values: List[int]
 
     #     @dataclass
-    #     class StrSequence:
+    #     class BazStrSequence:
     #         values: List[str]
 
-    #     baz: Union[IntSequence, StrSequence]
+    #     @dataclass
+    #     class BarIntSequence:
+    #         values: List[int]
+
+    #     @dataclass
+    #     class BarStrSequence:
+    #         values: List[str]
+
+    #     baz: Union[BazIntSequence, BazStrSequence]
+    #     bar: Union[BarIntSequence, BarStrSequence]
 
     desc = dataclass_to_proto("foo.bar", Baz, descriptor_pool=temp_dpool)
-    assert len(desc.oneofs) == 1
-    oneof_desc = desc.oneofs_by_name["baz"]
+    assert len(desc.oneofs) == 2
 
-    int_desc = desc.nested_types_by_name["IntSequence"]
-    str_desc = desc.nested_types_by_name["StrSequence"]
+    # baz
+    baz_oneof_desc = desc.oneofs_by_name["baz"]
+
+    int_desc = desc.nested_types_by_name["BazIntSequence"]
+    str_desc = desc.nested_types_by_name["BazStrSequence"]
 
     intseq_fld = desc.fields_by_name["baz_int_sequence"]
     assert intseq_fld.type == intseq_fld.TYPE_MESSAGE
     assert intseq_fld.message_type == int_desc
-    assert intseq_fld.containing_oneof is oneof_desc
+    assert intseq_fld.containing_oneof is baz_oneof_desc
 
     strseq_fld = desc.fields_by_name["baz_str_sequence"]
     assert strseq_fld.type == strseq_fld.TYPE_MESSAGE
     assert strseq_fld.message_type == str_desc
-    assert strseq_fld.containing_oneof is oneof_desc
+    assert strseq_fld.containing_oneof is baz_oneof_desc
+
+    intseq_values_fld = int_desc.fields_by_name["values"]
+    assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
+    assert intseq_values_fld.label == intseq_values_fld.LABEL_REPEATED
+
+    strseq_values_fld = str_desc.fields_by_name["values"]
+    assert strseq_values_fld.type == strseq_values_fld.TYPE_STRING
+    assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
+
+    # bar
+    bar_oneof_desc = desc.oneofs_by_name["bar"]
+
+    int_desc = desc.nested_types_by_name["BarIntSequence"]
+    str_desc = desc.nested_types_by_name["BarStrSequence"]
+
+    intseq_fld = desc.fields_by_name["bar_int_sequence"]
+    assert intseq_fld.type == intseq_fld.TYPE_MESSAGE
+    assert intseq_fld.message_type == int_desc
+    assert intseq_fld.containing_oneof is bar_oneof_desc
+
+    strseq_fld = desc.fields_by_name["bar_str_sequence"]
+    assert strseq_fld.type == strseq_fld.TYPE_MESSAGE
+    assert strseq_fld.message_type == str_desc
+    assert strseq_fld.containing_oneof is bar_oneof_desc
 
     intseq_values_fld = int_desc.fields_by_name["values"]
     assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
