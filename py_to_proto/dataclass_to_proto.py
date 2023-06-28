@@ -262,7 +262,7 @@ class DataclassConverter(ConverterBase):
                         f"{field_def.name}_{str(field_type.__name__)}_sequence".lower()
                     )
                     arg = dataclasses.make_dataclass(
-                        f"{str(field_type.__name__).capitalize()}Sequence",
+                        f"{field_def.name.capitalize()}{str(field_type.__name__).capitalize()}Sequence",
                         [("values", List[field_type])],
                     )
                 elif oneof_field_name is None:
