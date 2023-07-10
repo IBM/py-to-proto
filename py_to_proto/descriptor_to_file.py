@@ -8,6 +8,7 @@ from typing import List, Optional, Union
 
 # Third Party
 from google.protobuf import descriptor as _descriptor
+from google.protobuf import descriptor_pb2
 
 ## Globals #####################################################################
 
@@ -204,8 +205,26 @@ def _service_descriptor_to_file(
     lines = []
     lines.append(f"service {service_descriptor.name} {{")
     for method in service_descriptor.methods:
+        # The MethodDescriptor protobuf representation holds fields to represent
+        # server and client streaming, but these are not exposed in the python
+        # class that wraps a MethodDescriptor. They are, however, held in the
+        # underlying C implementation in upb, so the information is retained but
+        # is only accessible when re-serializing the python object to a proto
+        # representation of the descriptor.
+        md_proto = descriptor_pb2.MethodDescriptorProto()
+        method.CopyToProto(md_proto)
+        client_streaming = "stream " if md_proto.client_streaming else ""
+        server_streaming = "stream " if md_proto.server_streaming else ""
+
         lines.append(
-            f"{PROTO_FILE_INDENT}rpc {method.name}({method.input_type.full_name}) returns ({method.output_type.full_name});"
+            "{}rpc {}({}{}) returns ({}{});".format(
+                PROTO_FILE_INDENT,
+                method.name,
+                client_streaming,
+                method.input_type.full_name,
+                server_streaming,
+                method.output_type.full_name,
+            )
         )
     lines.append("}")
     return _indent_lines(indent, lines)

@@ -296,10 +296,29 @@ def test_descriptor_to_file_service_descriptor(temp_dpool):
             "service": {
                 "rpcs": [
                     {
-                        "name": "FooPredict",
+                        "name": "FooPredictUnaryUnary",
                         "input_type": "foo.bar.Foo",
                         "output_type": "foo.bar.Foo",
-                    }
+                    },
+                    {
+                        "name": "FooPredictUnaryStream",
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
+                        "server_streaming": True,
+                    },
+                    {
+                        "name": "FooPredictStreamUnary",
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
+                        "client_streaming": True,
+                    },
+                    {
+                        "name": "FooPredictStreamStream",
+                        "input_type": "foo.bar.Foo",
+                        "output_type": "foo.bar.Foo",
+                        "client_streaming": True,
+                        "server_streaming": True,
+                    },
                 ]
             }
         },
@@ -308,6 +327,13 @@ def test_descriptor_to_file_service_descriptor(temp_dpool):
     # TODO: type annotation fixup
     res = descriptor_to_file(service_descriptor)
     assert "service FooService {" in res
+    assert "rpc FooPredictUnaryUnary(foo.bar.Foo) returns (foo.bar.Foo)" in res
+    assert "rpc FooPredictUnaryStream(foo.bar.Foo) returns (stream foo.bar.Foo)" in res
+    assert "rpc FooPredictStreamUnary(stream foo.bar.Foo) returns (foo.bar.Foo)" in res
+    assert (
+        "rpc FooPredictStreamStream(stream foo.bar.Foo) returns (stream foo.bar.Foo)"
+        in res
+    )
 
 
 def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool):
