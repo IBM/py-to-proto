@@ -577,7 +577,8 @@ def test_dataclass_to_proto_custom_field_numbers(temp_dpool):
 
 
 def test_dataclass_to_proto_custom_field_numbers_not_ordered(temp_dpool):
-    """Make sure that custom fields can be added with Annotated types"""
+    """Make sure that custom fields can be added with Annotated types
+    and field numbers can be unordered"""
 
     @dataclass
     class Foo:
