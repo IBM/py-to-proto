@@ -451,7 +451,9 @@ class ConverterBase(Generic[T], abc.ABC):
                         ),
                         {
                             "oneof_index": len(nested_oneofs),
-                            "number": field_number + oneof_field_idx,
+                            "number": self.get_field_number(
+                                len(field_descriptors) + oneof_field_idx, oneof_field_def
+                            ),
                             "name": oneof_field_name.lower(),
                         },
                     )
