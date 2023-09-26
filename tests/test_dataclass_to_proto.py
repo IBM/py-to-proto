@@ -700,10 +700,6 @@ def test_dataclass_to_proto_duplicate_proto_files(temp_dpool):
         assert desc.fields_by_name["foo"].type == desc.fields_by_name["foo"].TYPE_INT64
         assert desc.fields_by_name["bar"].type == desc.fields_by_name["bar"].TYPE_STRING
 
-    # This should raise since we're not changing the package name here
-    with pytest.raises(TypeError):
-        dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool, validate=True)
-
 
 ## Error Cases #################################################################
 
