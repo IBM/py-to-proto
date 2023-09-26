@@ -114,7 +114,7 @@ class ConverterBase(Generic[T], abc.ABC):
         # Create the FileDescriptorProto with all messages
         log.debug("Creating FileDescriptorProto")
         fd_proto = descriptor_pb2.FileDescriptorProto(
-            name=f"{name.lower()}.proto",
+            name=f"{package}.{name.lower()}.proto",
             package=package,
             syntax="proto3",
             dependency=sorted(list(self.imports)),
