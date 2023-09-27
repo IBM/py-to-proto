@@ -830,7 +830,15 @@ def test_protoc_collision_same_def(temp_dpool):
         validate_jtd=True,
         descriptor_pool=temp_dpool,
     )
-    temp_dpool.AddSerializedFile(protoc_sample)
+    ### NOTE: This used to work before, but now raises an error
+    # because of the fact that we now save file descriptors
+    # with package name appended to them to disambiguate between
+    # other proto files with the same name but different package
+
+    # So now, OuterMessage exists within a file called
+    # test.jtd_to_proto.outermessage.proto hence it complains
+    with pytest.raises(TypeError):
+        temp_dpool.AddSerializedFile(protoc_sample)
 
 
 def test_map_to_message_reference(temp_dpool):
