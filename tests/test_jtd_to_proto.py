@@ -821,8 +821,9 @@ def test_type_names_are_fully_qualified_with_multiple_packages(temp_dpool):
 
 def test_protoc_collision_same_def(temp_dpool):
     """Test that if we do jtd_to_proto -> protoc with the same underlying file name, it is okay."""
-    # Happy because the file is named outermessage.proto, so we can find it!
-    protoc_sample = b'\n\x12outermessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
+    # Happy because the file is named test.jtd_to_proto.outermessage.proto, so we can find it!
+    # Note: The file was earlier named outermessage.proto but now we prefix the name with the package name
+    protoc_sample = b'\n$test.jtd_to_proto.outermessage.proto\x12\x11test.jtd_to_proto"!\n\x0cOuterMessage\x12\x11\n\tprimitive\x18\x01 \x01(\tb\x06proto3'
     jtd_to_proto(
         name="OuterMessage",
         package="test.jtd_to_proto",
@@ -830,15 +831,7 @@ def test_protoc_collision_same_def(temp_dpool):
         validate_jtd=True,
         descriptor_pool=temp_dpool,
     )
-    ### NOTE: This used to work before, but now raises an error
-    # because of the fact that we now save file descriptors
-    # with package name appended to them to disambiguate between
-    # other proto files with the same name but different package
-
-    # So now, OuterMessage exists within a file called
-    # test.jtd_to_proto.outermessage.proto hence it complains
-    with pytest.raises(TypeError):
-        temp_dpool.AddSerializedFile(protoc_sample)
+    temp_dpool.AddSerializedFile(protoc_sample)
 
 
 def test_map_to_message_reference(temp_dpool):

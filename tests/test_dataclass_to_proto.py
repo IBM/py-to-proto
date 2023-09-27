@@ -684,7 +684,6 @@ def test_dataclass_to_proto_duplicate_proto_files(temp_dpool):
         foo: int
         bar: str
 
-
     desc1 = dataclass_to_proto(
         "foo.bar", Foo, descriptor_pool=temp_dpool, validate=True
     )
