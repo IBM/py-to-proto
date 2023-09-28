@@ -60,7 +60,7 @@ RUN touch completed.txt
 FROM base as release_test
 # Copy a random file from the release phase just
 # to ensure release_test runs _after_ release
-COPY --from=release completed.txt .
+COPY --from=release /src/completed.txt .
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
 COPY ./tests /src/tests
