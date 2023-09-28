@@ -676,6 +676,26 @@ def test_dataclass_to_proto_optional_field(temp_dpool):
     assert baz_fld.type == _descriptor.FieldDescriptor.TYPE_STRING
 
 
+def test_dataclass_to_proto_duplicate_proto_files(temp_dpool):
+    """Make sure a dataclass with the same name dataclass works as expected"""
+
+    @dataclass
+    class Foo:
+        foo: int
+        bar: str
+
+    desc1 = dataclass_to_proto(
+        "foo.bar", Foo, descriptor_pool=temp_dpool, validate=True
+    )
+    # this should work since we are declaring a different package name
+    desc2 = dataclass_to_proto(
+        "foo.baz", Foo, descriptor_pool=temp_dpool, validate=True
+    )
+    for desc in [desc1, desc2]:
+        assert desc.fields_by_name["foo"].type == desc.fields_by_name["foo"].TYPE_INT64
+        assert desc.fields_by_name["bar"].type == desc.fields_by_name["bar"].TYPE_STRING
+
+
 ## Error Cases #################################################################
 
 
