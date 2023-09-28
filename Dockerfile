@@ -50,13 +50,17 @@ ARG PYPI_TOKEN
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
 RUN ./scripts/publish.sh
+RUN touch completed.txt
 
 ## Release Test ################################################################
 #
 # This phase installs the indicated version from PyPi and runs the unit tests
 # against the installed version.
 ##
-FROM release as release_test
+FROM base as release_test
+# Copy a random file from the release phase just
+# to ensure release_test runs _after_ release
+COPY --from=release completed.txt .
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
 COPY ./tests /src/tests
