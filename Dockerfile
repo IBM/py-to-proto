@@ -56,7 +56,7 @@ RUN ./scripts/publish.sh
 # This phase installs the indicated version from PyPi and runs the unit tests
 # against the installed version.
 ##
-FROM base as release_test
+FROM release as release_test
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
 COPY ./tests /src/tests
