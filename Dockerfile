@@ -50,7 +50,9 @@ ARG PYPI_TOKEN
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
 RUN ./scripts/publish.sh
-RUN touch completed.txt
+# Create a temp file that the release_test stage uses to ensure
+# correct order of build stages
+RUN touch RELEASED.txt
 
 ## Release Test ################################################################
 #
@@ -60,7 +62,7 @@ RUN touch completed.txt
 FROM base as release_test
 # Copy a random file from the release phase just
 # to ensure release_test runs _after_ release
-COPY --from=release completed.txt .
+COPY --from=release /src/RELEASED.txt .
 ARG RELEASE_VERSION
 ARG RELEASE_DRY_RUN
 COPY ./tests /src/tests
