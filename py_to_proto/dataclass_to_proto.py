@@ -271,6 +271,22 @@ class DataclassConverter(ConverterBase):
                     )
                     log.debug3("Using default oneof field name: %s", oneof_field_name)
                 oneof_fields.append((oneof_field_name, arg))
+
+        # here it's not a union, but it's still annotated.
+        # Special case in which we only have one field in the Union
+        # but we still want to create a one-of in case OneofField is present
+        # see https://github.com/IBM/py-to-proto/issues/63
+        elif get_origin(field_def.type) is Annotated and any(
+            type(arg) is OneofField for arg in get_args(field_def.type)
+        ):
+            # it can only be 1 arg, hence no need to iterate through the args
+            oneof_field_name = self._get_unique_annotation(field_def.type, OneofField)
+            assert (
+                len(oneof_field_name) > 0
+            ), "Got OneofField annotation without any name?"
+
+            log.debug3("Using oneof field name: %s", oneof_field_name)
+            oneof_fields.append((oneof_field_name, field_def.type))
         return oneof_fields
 
     def get_oneof_name(self, field_def: dataclasses.Field) -> str:
