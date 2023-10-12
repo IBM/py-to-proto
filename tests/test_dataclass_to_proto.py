@@ -458,6 +458,115 @@ def test_dataclass_to_proto_oneof_list_primitives(temp_dpool):
     assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
 
 
+def test_dataclass_to_proto_union_one_of_field(temp_dpool):
+    """Make sure that a dataclasss with a Union of a single primitive field
+    annotated with OneOfField works correctly"""
+
+    @dataclass
+    class Foo:
+        foo: Union[
+            Annotated[bool, OneofField("foo_bool"), FieldNumber(10)],  # type: ignore
+        ]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["foo"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    assert foobool_fld.type == foobool_fld.TYPE_BOOL
+    assert foobool_fld.containing_oneof is oneof_desc
+    assert foobool_fld.number == 10
+
+
+def test_dataclass_to_proto_one_of_field(temp_dpool):
+    """Make sure that a dataclasss with a single primitive field
+    annotated with OneOfField works correctly"""
+
+    @dataclass
+    class Foo:
+        foo: Annotated[bool, OneofField("foo_bool"), FieldNumber(10)]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["foo"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    assert foobool_fld.type == foobool_fld.TYPE_BOOL
+    assert foobool_fld.containing_oneof is oneof_desc
+    assert foobool_fld.number == 10
+
+
+def test_dataclass_to_proto_two_one_of_fields(temp_dpool):
+    """Make sure that a dataclasss with two separate single primitive fields
+    annotated with OneOfField works correctly"""
+
+    @dataclass
+    class Foo:
+        foo: Annotated[bool, OneofField("foo_bool"), FieldNumber(10)]
+        bar: Annotated[bool, OneofField("bar_bool"), FieldNumber(20)]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 2
+
+    oneof_desc = desc.oneofs_by_name["foo"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    assert foobool_fld.type == foobool_fld.TYPE_BOOL
+    assert foobool_fld.containing_oneof is oneof_desc
+    assert foobool_fld.number == 10
+
+    oneof_desc = desc.oneofs_by_name["bar"]
+    barbool_fld = desc.fields_by_name["bar_bool"]
+    assert barbool_fld.type == barbool_fld.TYPE_BOOL
+    assert barbool_fld.containing_oneof is oneof_desc
+    assert barbool_fld.number == 20
+
+
+def test_dataclass_to_proto_no_oneof_field_name_throws(temp_dpool):
+    """Make sure that a dataclasss with a single primitive field
+    annotated with OneOfField but without a name throws"""
+
+    @dataclass
+    class Foo:
+        foo: Union[
+            Annotated[bool, OneofField(), FieldNumber(10)],
+        ]  # type: ignore
+
+    with pytest.raises(
+        AssertionError, match="Got OneofField annotation without any name"
+    ):
+        dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+
+
+def test_dataclass_to_proto_oneof_len_one_no_annotated(temp_dpool):
+    """Make sure that a dataclasss with a single primitive field
+    annotated without a OneOfField creates no one-ofs"""
+
+    @dataclass
+    class Foo:
+        foo: Union[
+            Annotated[bool, FieldNumber(10)],
+        ]  # type: ignore
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    # since no OneofField in annotated, no oneof got created
+    assert len(desc.oneofs) == 0
+    foo_fld = desc.fields_by_name["foo"]
+    assert foo_fld.type == foo_fld.TYPE_BOOL
+    assert foo_fld.number == 10
+
+
+def test_dataclass_to_proto_oneof_union_single_field(temp_dpool):
+    """Make sure that a dataclasss with a union of a single field creates no one-ofs"""
+
+    @dataclass
+    class Foo:
+        foo: Union[bool]  # type: ignore
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    # A union with a single field is treated as a single field
+    assert len(desc.oneofs) == 0
+    foo_fld = desc.fields_by_name["foo"]
+    assert foo_fld.type == foo_fld.TYPE_BOOL
+
+
 def test_dataclass_to_proto_oneof_primitives(temp_dpool):
     """Make sure that a oneof with primitive fields works correctly"""
 
