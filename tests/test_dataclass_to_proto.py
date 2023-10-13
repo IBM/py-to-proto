@@ -685,6 +685,29 @@ def test_dataclass_to_proto_custom_field_numbers(temp_dpool):
     assert foostr_fld.containing_oneof is oneof_desc
 
 
+def test_dataclass_to_proto_custom_field_numbers_not_ordered(temp_dpool):
+    """Make sure that custom fields can be added with Annotated types
+    and field numbers can be unordered"""
+
+    @dataclass
+    class Foo:
+        bar: Annotated[bool, FieldNumber(1)]
+        foo: Union[bool, str]
+        baz: Annotated[bool, FieldNumber(2)]
+
+    desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
+    assert len(desc.oneofs) == 1
+    oneof_desc = desc.oneofs_by_name["foo"]
+    foobool_fld = desc.fields_by_name["foo_bool"]
+    foostr_fld = desc.fields_by_name["foo_str"]
+    assert foobool_fld.number == 10
+    assert foobool_fld.type == foobool_fld.TYPE_BOOL
+    assert foobool_fld.containing_oneof is oneof_desc
+    assert foostr_fld.number == 20
+    assert foostr_fld.type == foostr_fld.TYPE_STRING
+    assert foostr_fld.containing_oneof is oneof_desc
+
+
 def test_dataclass_to_proto_optional_fields(temp_dpool):
     """Make sure that an optional field (with a default value) is handled with a
     true optional (local oneof)
