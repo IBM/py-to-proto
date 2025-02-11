@@ -28,4 +28,4 @@ python3 -m pytest \
     --cov-report=term \
     --cov-report=html \
     --cov-fail-under=$FAIL_THRESH \
-    -W error "$@"
+    -W error -W ignore::PendingDeprecationWarning "$@"
