@@ -7,14 +7,6 @@ on:
         branches: [main]
     workflow_dispatch: {}
 jobs:
-    build-37:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Run unit tests
-              run: docker build . --target=test --build-arg PYTHON_VERSION=${PYTHON_VERSION}
-              env:
-                  PYTHON_VERSION: "3.7"
     build-38:
         runs-on: ubuntu-latest
         steps:
@@ -47,6 +39,14 @@ jobs:
               run: docker build . --target=test --build-arg PYTHON_VERSION=${PYTHON_VERSION}
               env:
                   PYTHON_VERSION: "3.11"
+    build-312:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: Run unit tests
+              run: docker build . --target=test --build-arg PYTHON_VERSION=${PYTHON_VERSION}
+              env:
+                  PYTHON_VERSION: "3.12"
 
     # Builds to validate alternate versions of protobuf
     build-38-pb319:

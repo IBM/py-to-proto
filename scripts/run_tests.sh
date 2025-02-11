@@ -20,6 +20,7 @@ else
     procs_arg=""
 fi
 
+# Ignore `google.protobuf.service module is deprecated` UserWarning for now
 FAIL_THRESH=100.0
 python3 -m pytest \
     $procs_arg \
@@ -28,4 +29,5 @@ python3 -m pytest \
     --cov-report=term \
     --cov-report=html \
     --cov-fail-under=$FAIL_THRESH \
-    -W error "$@"
+    -W error -W ignore::PendingDeprecationWarning \
+    -W ignore::UserWarning "$@"
