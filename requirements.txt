@@ -3,6 +3,3 @@
 protobuf>=3.19.0,<5
 alchemy-logging>=1.0.3
 typing-extensions>=4.5.0,<5; python_version < '3.9'
-
-# Round-trip proto compilation
-grpcio-tools>=1.46.3
