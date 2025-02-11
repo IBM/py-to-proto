@@ -11,6 +11,7 @@ ARG PROTOBUF_VERSION=""
 WORKDIR /src
 
 # Install build, test, and publish dependencies
+# Test requirements are installed first in case they have to be overwritten
 COPY requirements.txt requirements_test.txt /src/
 RUN true && \
     apt-get update -y && \
@@ -21,7 +22,7 @@ RUN true && \
     pip install twine pre-commit && \
     pip install -r /src/requirements_test.txt && \
     pip install -r /src/requirements.txt && \
-    if [ ! "${PROTOBUF_VERSION}" ]; then \
+    if [ "$PROTOBUF_VERSION" != "" ]; then \
         pip uninstall -y protobuf grpcio-tools && \
         pip install "protobuf${PROTOBUF_VERSION}" grpcio-tools; \
     fi && \
