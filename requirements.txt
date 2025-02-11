@@ -1,5 +1,5 @@
 alchemy-logging>=1.0.3
-grpcio>=1.46.3,<1.62.0
+grpcio>=1.46.3,<1.68.0
 # NOTE: protobuf 3.19 is the highest version allowed by tensorflow (currently),
 #   so we explicitly pin the lower bound to allow compatibility with tf
 protobuf>=3.19.0,<5
