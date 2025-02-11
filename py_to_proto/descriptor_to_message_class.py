@@ -8,6 +8,7 @@ from functools import wraps
 from types import MethodType
 from typing import Any, Callable, Type, Union
 import os
+import warnings
 
 # Third Party
 from google.protobuf import descriptor as _descriptor
@@ -17,6 +18,9 @@ from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 # Local
 from .descriptor_to_file import descriptor_to_file
+
+# Ignore `google.protobuf.service module is deprecated` warning for now
+warnings.simplefilter("ignore", UserWarning)
 
 
 def descriptor_to_message_class(
