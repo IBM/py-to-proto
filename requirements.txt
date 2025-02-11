@@ -1,5 +1,5 @@
 # NOTE: protobuf 3.19 is the highest version allowed by tensorflow (currently),
 #   so we explicitly pin the lower bound to allow compatibility with tf
-protobuf>=3.19.0,<5
+protobuf>=3.19.0,<6
 alchemy-logging>=1.0.3
 typing-extensions>=4.5.0,<5; python_version < '3.9'
