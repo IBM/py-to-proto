@@ -6,9 +6,7 @@ import types
 # Third Party
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
-from google.protobuf import service
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
-from google.protobuf.service import Service
 from google.protobuf.service_reflection import GeneratedServiceType
 import grpc
 
@@ -16,6 +14,7 @@ import grpc
 import alog
 
 # Local
+from .compat import GeneratedServiceType, make_service_class
 from .descriptor_to_message_class import (
     _add_protobuf_serializers,
     descriptor_to_message_class,
@@ -58,9 +57,9 @@ ServiceJsonType = Dict[str, Dict[str, List[Dict[str, str]]]]
 @dataclasses.dataclass
 class GRPCService:
     descriptor: ServiceDescriptor
-    registration_function: Callable[[Service, grpc.Server], None]
+    registration_function: Callable[[GeneratedServiceType, grpc.Server], None]
     client_stub_class: Type
-    service_class: Type[service.Service]
+    service_class: Type[GeneratedServiceType]
 
 
 def json_to_service(
@@ -194,7 +193,7 @@ def _json_to_service_file_descriptor_proto(
 
 def _service_descriptor_to_service(
     service_descriptor: ServiceDescriptor,
-) -> Type[service.Service]:
+) -> Type[GeneratedServiceType]:
     """Create a service class from a service descriptor
 
     Args:
@@ -202,16 +201,12 @@ def _service_descriptor_to_service(
             The ServiceDescriptor to generate a service interface for
 
     Returns:
-        Type[google.protobuf.service.Service]
-            A new class with metaclass google.protobuf.service_reflection.GeneratedServiceType
-            containing the methods from the service_descriptor
+        Type[google.protobuf.service_reflection.GeneratedServiceType]
+            A new class with metaclass
+            google.protobuf.service_reflection.GeneratedServiceType containing
+            the methods from the service_descriptor
     """
-    service_class = types.new_class(
-        service_descriptor.name,
-        (service.Service,),
-        {"metaclass": GeneratedServiceType},
-        lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
-    )
+    service_class = make_service_class(service_descriptor)
     service_class = _add_protobuf_serializers(service_class, service_descriptor)
 
     return service_class
@@ -276,7 +271,7 @@ def _service_descriptor_to_client_stub(
 def _service_descriptor_to_server_registration_function(
     service_descriptor: ServiceDescriptor,
     service_descriptor_proto: descriptor_pb2.ServiceDescriptorProto,
-) -> Callable[[Service, grpc.Server], None]:
+) -> Callable[[GeneratedServiceType, grpc.Server], None]:
     """Generates a server registration function from the service descriptor
 
     Args:
@@ -300,7 +295,7 @@ def _service_descriptor_to_server_registration_function(
             return grpc.stream_unary_rpc_method_handler
         return grpc.unary_unary_rpc_method_handler
 
-    def registration_function(servicer: Service, server: grpc.Server):
+    def registration_function(servicer: GeneratedServiceType, server: grpc.Server):
         """Server registration function"""
         rpc_method_handlers = {
             method.name: _get_handler(method_proto)(

@@ -12,10 +12,11 @@ import os
 # Third Party
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from google.protobuf import reflection, service
+from google.protobuf import reflection
 from google.protobuf.internal.enum_type_wrapper import EnumTypeWrapper
 
 # Local
+from .compat import GeneratedServiceType
 from .descriptor_to_file import descriptor_to_file
 
 
@@ -103,22 +104,24 @@ def _maybe_classmethod(func: Callable, parent: Any):
 
 
 def _add_protobuf_serializers(
-    type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]],
+    type_class: Union[
+        Type[_message.Message], EnumTypeWrapper, Type[GeneratedServiceType]
+    ],
     descriptor: Union[
         _descriptor.Descriptor,
         _descriptor.EnumDescriptor,
         _descriptor.ServiceDescriptor,
     ],
-) -> Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]:
+) -> Union[Type[_message.Message], EnumTypeWrapper, Type[GeneratedServiceType]]:
     """Helper to add the to_proto_file and write_proto_file to a given type class.
 
     Args:
         descriptor:  Union[_descriptor.Descriptor, _descriptor.EnumDescriptor, _descriptor.ServiceDescriptor]
             The message or enum Descriptor
-        type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]
+        type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[GeneratedServiceType]]
 
     Returns:
-       Union[Type[_message.Message], EnumTypeWrapper, Type[service.Service]]
+       Union[Type[_message.Message], EnumTypeWrapper, Type[GeneratedServiceType]]
             A new class with the to_proto_file and write_proto_file added
     """
     # Add to_proto_file
