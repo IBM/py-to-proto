@@ -84,7 +84,8 @@ def descriptor_to_file(
     proto_file_lines.append(PROTO_FILE_AUTOGEN_HEADER)
 
     # Add package, syntax, and imports
-    proto_file_lines.append(f'syntax = "{descriptor.syntax}";')
+    syntax = getattr(descriptor, "syntax", "proto3")
+    proto_file_lines.append(f'syntax = "{syntax}";')
     if descriptor.package:
         proto_file_lines.append(f"package {descriptor.package};")
     for dep in descriptor.dependencies:
