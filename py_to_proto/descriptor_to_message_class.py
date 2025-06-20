@@ -104,7 +104,9 @@ def _maybe_classmethod(func: Callable, parent: Any):
 
 
 def _add_protobuf_serializers(
-    type_class: Union[Type[_message.Message], EnumTypeWrapper, Type[GeneratedServiceType]],
+    type_class: Union[
+        Type[_message.Message], EnumTypeWrapper, Type[GeneratedServiceType]
+    ],
     descriptor: Union[
         _descriptor.Descriptor,
         _descriptor.EnumDescriptor,
