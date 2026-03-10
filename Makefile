@@ -9,34 +9,12 @@ help: ## Display this help.
 
 .PHONY: test
 test: ## Run the unit tests
-	PARALLEL=1 ./scripts/run_tests.sh
+	uv run --extra test pytest -n auto
 
 .PHONY: fmt
 fmt: ## Run code formatting
 	./scripts/fmt.sh
 
-.PHONY: wheel
-wheel: ## Build release wheels
-	./scripts/build_wheel.sh
-
-##@ Develop
-
-PYTHON_VERSION ?= 3.8
-PROTOBUF_VERSION ?=
-
-.PHONY: develop.build
-develop.build: ## Build the development environment container
-	docker build . --target=base \
-		-t py-to-proto-develop \
-		--build-arg PYTHON_VERSION=${PYTHON_VERSION} \
-		--build-arg PROTOBUF_VERSION="${PROTOBUF_VERSION}"
-
-.PHONY: develop
-develop:	develop.build ## Run the develop shell with the local codebase mounted
-	touch .bash_history
-	docker run --rm -it \
-		--entrypoint bash \
-		-w /src \
-		-v ${PWD}:/src \
-		-v ${PWD}/.bash_history:/root/.bash_history \
-		py-to-proto-develop
+.PHONY: build
+build: ## Build sdist and wheel
+	uv build

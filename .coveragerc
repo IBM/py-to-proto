@@ -1,4 +1,0 @@
-[run]
-omit =
-    tests/**
-    py_to_proto/compat_annotated.py
