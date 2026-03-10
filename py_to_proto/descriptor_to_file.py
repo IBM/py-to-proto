@@ -10,6 +10,9 @@ from typing import List, Optional, Union
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pb2
 
+# Local
+from .compat import is_field_repeated
+
 ## Globals #####################################################################
 
 
@@ -241,7 +244,7 @@ def _field_descriptor_to_file(
     field_line = ""
     if (
         not _is_map_entry(field_descriptor.message_type)
-        and field_descriptor.label == field_descriptor.LABEL_REPEATED
+        and is_field_repeated(field_descriptor)
     ):
         field_line += "repeated "
 

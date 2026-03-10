@@ -37,6 +37,4 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
       - name: Run unit tests (protobuf ${{ matrix.protobuf-version }})
-        run: |
-          echo 'protobuf${{ matrix.protobuf-version }}' > /tmp/overrides.txt
-          uv run --python ${{ matrix.python-version }} --extra test --override /tmp/overrides.txt pytest
+        run: uv run --python ${{ matrix.python-version }} --extra test --with 'protobuf${{ matrix.protobuf-version }}' pytest

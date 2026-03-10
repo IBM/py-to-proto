@@ -11,6 +11,7 @@ from google.protobuf.descriptor import EnumDescriptor, FieldDescriptor
 import pytest
 
 # Local
+from py_to_proto.compat import is_field_optional, is_field_repeated
 from py_to_proto.json_to_service import json_to_service
 from py_to_proto.jtd_to_proto import jtd_to_proto
 from py_to_proto.utils import to_upper_camel
@@ -48,7 +49,7 @@ def test_jtd_to_proto_primitives(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["foo"]
     assert fields["foo"].type == fields["foo"].TYPE_BOOL
-    assert fields["foo"].label == fields["foo"].LABEL_OPTIONAL
+    assert is_field_optional(fields["foo"])
 
 
 def test_jtd_to_proto_objects(temp_dpool):
@@ -87,7 +88,7 @@ def test_jtd_to_proto_objects(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["buz"]
     assert fields["buz"].type == fields["buz"].TYPE_MESSAGE
-    assert fields["buz"].label == fields["buz"].LABEL_OPTIONAL
+    assert is_field_optional(fields["buz"])
 
 
 def test_jtd_to_proto_additonal_properties(temp_dpool):
@@ -136,7 +137,7 @@ def test_jtd_to_proto_additonal_properties(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["buz"]
     assert fields["buz"].type == fields["buz"].TYPE_MESSAGE
-    assert fields["buz"].label == fields["buz"].LABEL_OPTIONAL
+    assert is_field_optional(fields["buz"])
 
 
 def test_jtd_to_proto_timestamp(temp_dpool):
@@ -170,7 +171,7 @@ def test_jtd_to_proto_timestamp(temp_dpool):
     assert list(fields.keys()) == ["time"]
     assert fields["time"].type == fields["time"].TYPE_MESSAGE
     assert fields["time"].message_type.full_name == "google.protobuf.Timestamp"
-    assert fields["time"].label == fields["time"].LABEL_OPTIONAL
+    assert is_field_optional(fields["time"])
 
 
 def test_jtd_to_proto_enum(temp_dpool):
@@ -212,7 +213,7 @@ def test_jtd_to_proto_enum(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["bat"]
     assert fields["bat"].type == fields["bat"].TYPE_ENUM
-    assert fields["bat"].label == fields["bat"].LABEL_OPTIONAL
+    assert is_field_optional(fields["bat"])
 
 
 def test_jtd_to_proto_arrays_of_primitives(temp_dpool):
@@ -247,7 +248,7 @@ def test_jtd_to_proto_arrays_of_primitives(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["foo"]
     assert fields["foo"].type == fields["foo"].TYPE_BOOL
-    assert fields["foo"].label == fields["foo"].LABEL_REPEATED
+    assert is_field_repeated(fields["foo"])
 
 
 def test_jtd_to_proto_arrays_of_objects(temp_dpool):
@@ -289,7 +290,7 @@ def test_jtd_to_proto_arrays_of_objects(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["buz"]
     assert fields["buz"].type == fields["buz"].TYPE_MESSAGE
-    assert fields["buz"].label == fields["buz"].LABEL_REPEATED
+    assert is_field_repeated(fields["buz"])
 
 
 def test_jtd_to_proto_arrays_of_enums(temp_dpool):
@@ -333,7 +334,7 @@ def test_jtd_to_proto_arrays_of_enums(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["bat"]
     assert fields["bat"].type == fields["bat"].TYPE_ENUM
-    assert fields["bat"].label == fields["bat"].LABEL_REPEATED
+    assert is_field_repeated(fields["bat"])
 
 
 def test_jtd_to_proto_maps_to_primitives(temp_dpool):
@@ -373,7 +374,7 @@ def test_jtd_to_proto_maps_to_primitives(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["biz"]
     assert fields["biz"].type == fields["biz"].TYPE_MESSAGE
-    assert fields["biz"].label == fields["biz"].LABEL_REPEATED
+    assert is_field_repeated(fields["biz"])
 
 
 def test_jtd_to_proto_maps_to_objects(temp_dpool):
@@ -419,7 +420,7 @@ def test_jtd_to_proto_maps_to_objects(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["bonk"]
     assert fields["bonk"].type == fields["bonk"].TYPE_MESSAGE
-    assert fields["bonk"].label == fields["bonk"].LABEL_REPEATED
+    assert is_field_repeated(fields["bonk"])
 
 
 def test_jtd_to_proto_maps_to_enums(temp_dpool):
@@ -467,7 +468,7 @@ def test_jtd_to_proto_maps_to_enums(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["bang"]
     assert fields["bang"].type == fields["bang"].TYPE_MESSAGE
-    assert fields["bang"].label == fields["bang"].LABEL_REPEATED
+    assert is_field_repeated(fields["bang"])
 
 
 def test_jtd_to_proto_oneofs(temp_dpool):
@@ -516,10 +517,10 @@ def test_jtd_to_proto_oneofs(temp_dpool):
     assert list(fields.keys()) == ["screw_driver", "drill"]
     assert fields["screw_driver"].type == fields["screw_driver"].TYPE_MESSAGE
     assert fields["screw_driver"].containing_oneof.name == "bitType"
-    assert fields["screw_driver"].label == fields["screw_driver"].LABEL_OPTIONAL
+    assert is_field_optional(fields["screw_driver"])
     assert fields["drill"].type == fields["drill"].TYPE_MESSAGE
     assert fields["screw_driver"].containing_oneof.name == "bitType"
-    assert fields["drill"].label == fields["drill"].LABEL_OPTIONAL
+    assert is_field_optional(fields["drill"])
 
 
 def test_jtd_to_proto_optional_properties(temp_dpool):
@@ -569,9 +570,9 @@ def test_jtd_to_proto_optional_properties(temp_dpool):
     fields = dict(descriptor.fields_by_name)
     assert list(fields.keys()) == ["foo", "optionalFoo", "optionalList"]
     assert fields["foo"].type == fields["foo"].TYPE_BOOL
-    assert fields["foo"].label == fields["foo"].LABEL_OPTIONAL
+    assert is_field_optional(fields["foo"])
     assert fields["optionalFoo"].type == fields["optionalFoo"].TYPE_STRING
-    assert fields["optionalFoo"].label == fields["optionalFoo"].LABEL_OPTIONAL
+    assert is_field_optional(fields["optionalFoo"])
 
     # Make sure the optional field has the same field descriptor at the top level of the message and in the oneof
     assert fields["optionalFoo"] is descriptor.oneofs[0].fields[0]
