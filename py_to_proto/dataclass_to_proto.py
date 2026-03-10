@@ -327,7 +327,7 @@ class DataclassConverter(ConverterBase):
             non_none_args = [arg for arg in args if arg is not type(None)]
             assert non_none_args, f"Cannot have a union with only one NoneType arg"
             if len(non_none_args) > 1:
-                res_type = Union.__getitem__(tuple(non_none_args))
+                res_type = Union[tuple(non_none_args)]
             else:
                 res_type = non_none_args[0]
             return cls._resolve_wrapped_type(res_type)
