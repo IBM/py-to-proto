@@ -1,0 +1,73 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "py_to_proto"
+dynamic = ["version"]
+description = "A tool to dynamically create protobuf message classes from python data schemas"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Gabe Goodhart", email = "ghart@us.ibm.com" },
+]
+keywords = ["json", "json typedef", "jtd", "protobuf", "proto", "dataclass"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "protobuf>=3.19.0,<7.0.0",
+    "alchemy-logging>=1.0.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/IBM/py-to-proto"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=6.2.5",
+    "pytest-cov>=3.0.0",
+    "pytest-xdist>=2.5.0",
+    "tls_test_tools>=0.1.1",
+    "grpcio-tools>=1.46.3",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--cov=py_to_proto",
+    "--cov-report=term",
+    "--cov-report=html",
+    "--cov-fail-under=100.0",
+    "-W", "error",
+]
+
+[tool.coverage.run]
+omit = ["tests/**", "py_to_proto/compat_annotated.py"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+include = ["py_to_proto/", "LICENSE", "README.md"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["py_to_proto"]
+
+[tool.isort]
+profile = "black"
+from_first = true
+import_heading_future = "Future"
+import_heading_stdlib = "Standard"
+import_heading_thirdparty = "Third Party"
+import_heading_firstparty = "First Party"
+import_heading_localfolder = "Local"
+known_firstparty = ["alog"]
+known_localfolder = ["py_to_proto", "tests"]

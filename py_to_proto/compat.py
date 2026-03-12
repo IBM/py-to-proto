@@ -7,7 +7,7 @@ from typing import Type
 import types
 
 # Third Party
-from google.protobuf.descriptor import ServiceDescriptor
+from google.protobuf.descriptor import FieldDescriptor, ServiceDescriptor
 
 # protobuf >= 6
 try:  # pragma: no cover
@@ -38,3 +38,21 @@ except ImportError:  # pragma: no cover
             {"metaclass": GeneratedServiceType},
             lambda ns: ns.update({"DESCRIPTOR": service_descriptor}),
         )
+
+
+# protobuf >= 6: label property is deprecated in favor of is_repeated/is_required
+if hasattr(FieldDescriptor, "is_repeated"):  # pragma: no cover
+
+    def is_field_repeated(field: FieldDescriptor) -> bool:
+        return field.is_repeated
+
+    def is_field_optional(field: FieldDescriptor) -> bool:
+        return not field.is_required and not field.is_repeated
+
+else:  # pragma: no cover
+
+    def is_field_repeated(field: FieldDescriptor) -> bool:
+        return field.label == FieldDescriptor.LABEL_REPEATED
+
+    def is_field_optional(field: FieldDescriptor) -> bool:
+        return field.label == FieldDescriptor.LABEL_OPTIONAL

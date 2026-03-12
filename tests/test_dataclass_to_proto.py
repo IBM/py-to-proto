@@ -15,6 +15,7 @@ from google.protobuf import descriptor_pb2, timestamp_pb2
 import pytest
 
 # Local
+from py_to_proto.compat import is_field_repeated
 from py_to_proto.dataclass_to_proto import (
     Annotated,
     FieldNumber,
@@ -277,7 +278,7 @@ def test_dataclass_to_proto_repeated_primitive(temp_dpool):
     desc = dataclass_to_proto("foo.bar", Foo, descriptor_pool=temp_dpool)
     foo_fld = desc.fields_by_name["foo"]
     assert foo_fld.type == foo_fld.TYPE_BOOL
-    assert foo_fld.label == foo_fld.LABEL_REPEATED
+    assert is_field_repeated(foo_fld)
 
 
 def test_dataclass_to_proto_repeated_message(temp_dpool):
@@ -296,7 +297,7 @@ def test_dataclass_to_proto_repeated_message(temp_dpool):
     foo_fld = foo_desc.fields_by_name["foo"]
     assert foo_fld.type == foo_fld.TYPE_DOUBLE
     bar_fld = bar_desc.fields_by_name["bar"]
-    assert bar_fld.label == bar_fld.LABEL_REPEATED
+    assert is_field_repeated(bar_fld)
     assert bar_fld.type == bar_fld.TYPE_MESSAGE
     assert bar_fld.message_type == foo_desc
 
@@ -315,7 +316,7 @@ def test_dataclass_to_proto_repeated_enum(temp_dpool):
     bar_desc = dataclass_to_proto("foo.bar", Bar, descriptor_pool=temp_dpool)
     foo_desc = bar_desc.enum_types_by_name["FooEnum"]
     bar_fld = bar_desc.fields_by_name["bar"]
-    assert bar_fld.label == bar_fld.LABEL_REPEATED
+    assert is_field_repeated(bar_fld)
     assert bar_fld.type == bar_fld.TYPE_ENUM
     assert bar_fld.enum_type == foo_desc
 
@@ -364,11 +365,11 @@ def test_dataclass_to_proto_oneof_annotated_list_primitives(temp_dpool):
 
     intseq_values_fld = int_desc.fields_by_name["values"]
     assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
-    assert intseq_values_fld.label == intseq_values_fld.LABEL_REPEATED
+    assert is_field_repeated(intseq_values_fld)
 
     strseq_values_fld = str_desc.fields_by_name["values"]
     assert strseq_values_fld.type == strseq_values_fld.TYPE_STRING
-    assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
+    assert is_field_repeated(strseq_values_fld)
 
 
 def test_dataclass_to_proto_oneof_list_primitives(temp_dpool):
@@ -427,11 +428,11 @@ def test_dataclass_to_proto_oneof_list_primitives(temp_dpool):
 
     intseq_values_fld = int_desc.fields_by_name["values"]
     assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
-    assert intseq_values_fld.label == intseq_values_fld.LABEL_REPEATED
+    assert is_field_repeated(intseq_values_fld)
 
     strseq_values_fld = str_desc.fields_by_name["values"]
     assert strseq_values_fld.type == strseq_values_fld.TYPE_STRING
-    assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
+    assert is_field_repeated(strseq_values_fld)
 
     # bar
     bar_oneof_desc = desc.oneofs_by_name["bar"]
@@ -451,11 +452,11 @@ def test_dataclass_to_proto_oneof_list_primitives(temp_dpool):
 
     intseq_values_fld = int_desc.fields_by_name["values"]
     assert intseq_values_fld.type == intseq_values_fld.TYPE_INT64
-    assert intseq_values_fld.label == intseq_values_fld.LABEL_REPEATED
+    assert is_field_repeated(intseq_values_fld)
 
     strseq_values_fld = str_desc.fields_by_name["values"]
     assert strseq_values_fld.type == strseq_values_fld.TYPE_STRING
-    assert strseq_values_fld.label == strseq_values_fld.LABEL_REPEATED
+    assert is_field_repeated(strseq_values_fld)
 
 
 def test_dataclass_to_proto_union_one_of_field(temp_dpool):

@@ -1,43 +1,19 @@
-# This workflow runs the typescript implementation unit tests
 name: release
 on:
-    release:
-        types: [published]
-    workflow_dispatch: {}
+  release:
+    types: [published]
+  workflow_dispatch: {}
 jobs:
-    build-38:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Run release
-              env:
-                  PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-                  PYTHON_VERSION: "3.8"
-              run: REF="${{ github.ref }}" ./scripts/release.sh
-    build-39:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Run release
-              env:
-                  PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-                  PYTHON_VERSION: "3.9"
-              run: REF="${{ github.ref }}" ./scripts/release.sh
-    build-310:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Run release
-              env:
-                  PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-                  PYTHON_VERSION: "3.10"
-              run: REF="${{ github.ref }}" ./scripts/release.sh
-    build-311:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Run release
-              env:
-                  PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-                  PYTHON_VERSION: "3.11"
-              run: REF="${{ github.ref }}" ./scripts/release.sh
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - name: Build sdist and wheel
+        run: uv build
+      - name: Publish to PyPI
+        run: uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
