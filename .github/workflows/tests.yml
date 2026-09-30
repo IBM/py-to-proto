@@ -1,21 +1,23 @@
 name: tests
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+    workflow_dispatch: {}
+permissions:
+    contents: read
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: astral-sh/setup-uv@v5
-      - name: Run unit tests
-        run: uv run --python ${{ matrix.python-version }} --extra test pytest
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: astral-sh/setup-uv@v5
+            - name: Run unit tests
+              run: uv run --python ${{ matrix.python-version }} --extra test pytest
