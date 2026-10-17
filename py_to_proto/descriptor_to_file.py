@@ -91,8 +91,8 @@ def descriptor_to_file(
     proto_file_lines.append(f'syntax = "{syntax}";')
     if descriptor.package:
         proto_file_lines.append(f"package {descriptor.package};")
-    for dep in descriptor.dependencies:
-        proto_file_lines.append(f'import "{dep.name}";')
+    for dep_name in dict.fromkeys(dep.name for dep in descriptor.dependencies):
+        proto_file_lines.append(f'import "{dep_name}";')
     proto_file_lines.append("")
 
     # Add all enums

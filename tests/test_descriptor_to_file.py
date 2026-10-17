@@ -376,3 +376,42 @@ def test_descriptor_to_file_compilable_proto_with_service_descriptor(temp_dpool)
     ).descriptor
     res = descriptor_to_file(service_descriptor)
     assert compile_proto_module(res, imported_file_contents=imported_files)
+
+
+def test_descriptor_to_file_no_duplicate_imports(temp_dpool):
+    """Regression test for #66: duplicate import lines when multiple fields share the same dependency.
+
+    A JTD definition with two timestamp fields both resolve to
+    google/protobuf/timestamp.proto.  Before the fix, descriptor.dependencies
+    contained that entry twice, producing a repeated ``import`` directive that
+    older protobuf compilers reject.  After the fix, each import appears exactly
+    once in the serialised output.
+    """
+    descriptor = jtd_to_proto(
+        "EventPair",
+        "regression.issue66",
+        {
+            "properties": {
+                "start_time": {"type": "timestamp"},
+                "end_time": {"type": "timestamp"},
+            }
+        },
+        descriptor_pool=temp_dpool,
+    )
+    proto_content = descriptor_to_file(descriptor)
+
+    # Sanity: the timestamp import must be present at all.
+    assert 'import "google/protobuf/timestamp.proto";' in proto_content
+
+    # Each import line must appear at most once.
+    import_lines = [
+        line for line in proto_content.splitlines() if line.startswith('import "')
+    ]
+    seen: set = set()
+    for line in import_lines:
+        assert line not in seen, (
+            f"Duplicate import found in generated proto file: {line!r}\n\n"
+            f"Full output:\n{proto_content}"
+        )
+        seen.add(line)
+
